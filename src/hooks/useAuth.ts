@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { supabase } from '@/lib/supabase/client'
+import { supabase, isDemoMode } from '@/lib/supabase/client'
 import { useAuthStore } from '@/store/auth'
 import type { User } from '@/types'
 
@@ -7,6 +7,11 @@ export function useAuth() {
   const { user, isAuthenticated, isLoading, setUser, setLoading, logout } = useAuthStore()
 
   useEffect(() => {
+    if (isDemoMode) {
+      setLoading(false)
+      return
+    }
+
     const checkSession = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession()
