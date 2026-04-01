@@ -1,10 +1,23 @@
-import { Outlet } from 'react-router-dom'
+import { Outlet, Navigate } from 'react-router-dom'
+import { useAuth } from '@/hooks/useAuth'
 import { useAppStore } from '@/store/app'
+import { isDemoMode } from '@/lib/supabase/client'
 import { Sidebar } from './Sidebar'
 import { Header } from './Header'
 
 export function MainLayout() {
+  const { isAuthenticated, isLoading } = useAuth()
   const { sidebarCollapsed } = useAppStore()
+
+  if (!isDemoMode && isLoading) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+      </div>
+    )
+  }
+
+  if (!isDemoMode && !isAuthenticated) return <Navigate to="/login" replace />
 
   return (
     <div className="min-h-screen bg-background">
