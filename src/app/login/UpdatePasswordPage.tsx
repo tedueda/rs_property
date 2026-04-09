@@ -18,11 +18,12 @@ export function UpdatePasswordPage() {
   useEffect(() => {
     if (isDemoMode) return
     // Supabase will automatically pick up the token from the URL hash
-    supabase.auth.onAuthStateChange((event) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'PASSWORD_RECOVERY') {
         // User arrived via password reset link - ready to update
       }
     })
+    return () => subscription.unsubscribe()
   }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {

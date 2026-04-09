@@ -59,7 +59,9 @@ export function useAuth() {
   }
 
   const signOut = async () => {
-    await supabase.auth.signOut()
+    if (!isDemoMode) {
+      await supabase.auth.signOut()
+    }
     logout()
   }
 
