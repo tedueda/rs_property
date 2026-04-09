@@ -72,6 +72,7 @@ export function FileUploadPage() {
   const [loading, setLoading] = useState(true)
   const [isDragging, setIsDragging] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const userOverrodeTarget = useRef(false)
 
   // Upload flow state
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false)
@@ -111,6 +112,7 @@ export function FileUploadPage() {
   }, [location.state])
 
   const openUploadFlow = (selectedFiles: File[]) => {
+    userOverrodeTarget.current = false
     setPendingFiles(selectedFiles)
     setNotes('')
     setOcrResult(null)
@@ -127,7 +129,7 @@ export function FileUploadPage() {
         setAnalyzingExcel(true)
         analyzeExcelFileFromFile(f).then(sheets => {
           setExcelSheets(sheets)
-          if (sheets.length > 0 && sheets[0].suggestedTarget !== 'unknown') {
+          if (sheets.length > 0 && sheets[0].suggestedTarget !== 'unknown' && !userOverrodeTarget.current) {
             const mapped = mapExcelTarget(sheets[0].suggestedTarget)
             setImportTarget(mapped)
             setAutoGuess(`Excel\u5206\u6790: ${IMPORT_TARGET_LABELS[mapped] || sheets[0].suggestedTarget}`)
@@ -329,7 +331,7 @@ export function FileUploadPage() {
             {/* Import target selection */}
             <div className="space-y-2">
               <Label>\u53d6\u8fbc\u7a2e\u5225\uff08\u62bd\u51fa\u5148\uff09 <span className="text-red-500">*</span></Label>
-              <Select value={importTarget} onValueChange={v => setImportTarget(v as ImportTargetType)}>
+              <Select value={importTarget} onValueChange={v => { userOverrodeTarget.current = true; setImportTarget(v as ImportTargetType) }}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {Object.entries(IMPORT_TARGET_LABELS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
