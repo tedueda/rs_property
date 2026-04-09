@@ -77,7 +77,8 @@ export function DocumentDetailPage() {
   const [uploadNotes, setUploadNotes] = useState('')
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [linkTargetType, setLinkTargetType] = useState('company')
-  const [linkTargetLabel, setLinkTargetLabel] = useState('')
+  const [linkTargetId, setLinkTargetId] = useState('')
+  const [targetOptions, setTargetOptions] = useState<{id: string, label: string}[]>([])
 
   const fetchData = useCallback(async () => {
     if (!id) return
@@ -128,24 +129,56 @@ export function DocumentDetailPage() {
     setSaving(false); setUploadDialogOpen(false); setUploadNotes(''); setSelectedFile(null); fetchData()
   }
 
+  const fetchTargetOptions = useCallback(async (type: string) => {
+    if (isDemoMode) {
+      const demoOptions: Record<string, {id: string, label: string}[]> = {
+        company: DEMO_COMPANIES.map(c => ({ id: c.id, label: c.name })),
+        property: [{ id: 'p1', label: 'ハイツ林 A棟' }, { id: 'p2', label: 'NYマンション' }],
+        room: [{ id: 'r1', label: '101号室' }, { id: 'r2', label: '202号室' }],
+        tenant: [{ id: 't1', label: '田中太郎' }, { id: 't2', label: '佐藤花子' }],
+        bank_account: [{ id: 'ba1', label: '三井住友銀行 ****4567' }, { id: 'ba2', label: 'みずほ銀行 ****8901' }],
+        loan_repayment: [{ id: 'lr1', label: '三井住友銀行 月額返済' }],
+        expense: [{ id: 'e1', label: '修繕工事費用' }],
+        payroll: [{ id: 'pr1', label: '2025年3月給与' }],
+      }
+      setTargetOptions(demoOptions[type] || [])
+      return
+    }
+    const tableMap: Record<string, { table: string, labelCol: string }> = {
+      company: { table: 'companies', labelCol: 'name' },
+      property: { table: 'properties', labelCol: 'property_name' },
+      room: { table: 'rooms', labelCol: 'room_number' },
+      tenant: { table: 'tenants', labelCol: 'tenant_name' },
+      bank_account: { table: 'bank_accounts', labelCol: 'bank_name' },
+      loan_repayment: { table: 'loan_repayments', labelCol: 'lender_name' },
+      expense: { table: 'expense_records', labelCol: 'description' },
+      payroll: { table: 'payroll_records', labelCol: 'target_month' },
+    }
+    const mapping = tableMap[type]
+    if (!mapping) { setTargetOptions([]); return }
+    const { data } = await supabase.from(mapping.table).select(`id, ${mapping.labelCol}`).is('deleted_at', null).limit(50)
+    setTargetOptions((data || []).map((r: Record<string, string>) => ({ id: r.id, label: r[mapping.labelCol] || r.id })))
+  }, [])
+
   const handleAddLink = async () => {
-    if (!id || !linkTargetLabel.trim()) return
+    if (!id || !linkTargetId) return
     setSaving(true)
+    const label = targetOptions.find(o => o.id === linkTargetId)?.label || linkTargetId
     if (isDemoMode) {
       const newLink: DocumentLink = {
         id: String(Date.now()), document_id: id,
         target_type: linkTargetType as DocumentLink['target_type'],
-        target_id: String(Date.now()), target_label: linkTargetLabel,
+        target_id: linkTargetId, target_label: label,
         created_at: new Date().toISOString(),
       }
       setLinks(prev => [...prev, newLink])
-      setLinkDialogOpen(false); setSaving(false); setLinkTargetLabel('')
+      setLinkDialogOpen(false); setSaving(false); setLinkTargetId('')
       return
     }
     await supabase.from('document_links').insert({
-      document_id: id, target_type: linkTargetType, target_id: linkTargetLabel, // simplified for now
+      document_id: id, target_type: linkTargetType, target_id: linkTargetId, target_label: label,
     })
-    setSaving(false); setLinkDialogOpen(false); setLinkTargetLabel(''); fetchData()
+    setSaving(false); setLinkDialogOpen(false); setLinkTargetId(''); fetchData()
   }
 
   const handleDeleteLink = async (linkId: string) => {
@@ -292,7 +325,7 @@ export function DocumentDetailPage() {
           <div className="space-y-4">
             <div className="space-y-2">
               <Label>関連先の種類</Label>
-              <Select value={linkTargetType} onValueChange={setLinkTargetType}>
+              <Select value={linkTargetType} onValueChange={(v) => { setLinkTargetType(v); setLinkTargetId(''); fetchTargetOptions(v) }}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {Object.entries(DOCUMENT_LINK_TARGET_TYPES).map(([k, v]) => <SelectItem key={k} value={k}>{v.label}</SelectItem>)}
@@ -300,13 +333,22 @@ export function DocumentDetailPage() {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>関連先名 <span className="text-red-500">*</span></Label>
-              <Input value={linkTargetLabel} onChange={e => setLinkTargetLabel(e.target.value)} placeholder="例: 林建設株式会社" />
+              <Label>関連先 <span className="text-red-500">*</span></Label>
+              {targetOptions.length > 0 ? (
+                <Select value={linkTargetId} onValueChange={setLinkTargetId}>
+                  <SelectTrigger><SelectValue placeholder="選択してください" /></SelectTrigger>
+                  <SelectContent>
+                    {targetOptions.map(o => <SelectItem key={o.id} value={o.id}>{o.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <p className="text-sm text-muted-foreground py-2">種類を選択すると候補が表示されます</p>
+              )}
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setLinkDialogOpen(false)}>キャンセル</Button>
-            <Button onClick={handleAddLink} disabled={saving || !linkTargetLabel.trim()}>{saving ? '追加中...' : '追加'}</Button>
+            <Button onClick={handleAddLink} disabled={saving || !linkTargetId}>{saving ? '追加中...' : '追加'}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

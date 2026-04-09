@@ -249,6 +249,31 @@ export function DashboardPage() {
           amount: Number(t.amount), reason: String(t.reason || ''),
         }
       }))
+
+      // Phase 3 data
+      const [{ data: expiringDocs }, { data: recentFiles }, { count: pendingCount }] = await Promise.all([
+        supabase.from('documents').select('id, title, company_id, contract_end_date').is('deleted_at', null).not('contract_end_date', 'is', null).order('contract_end_date', { ascending: true }).limit(5),
+        supabase.from('uploaded_files').select('id, file_name, created_at, status').order('created_at', { ascending: false }).limit(5),
+        supabase.from('extracted_data_candidates').select('*', { count: 'exact', head: true }).eq('review_status', 'pending'),
+      ])
+
+      const today = new Date()
+      setExpiringContracts((expiringDocs || []).map((d: Record<string, string>) => {
+        const endDate = new Date(d.contract_end_date)
+        const daysRemaining = Math.ceil((endDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
+        return {
+          id: d.id, title: d.title,
+          company_name: companyMap[d.company_id] || '',
+          contract_end_date: d.contract_end_date,
+          days_remaining: daysRemaining,
+        }
+      }))
+
+      setRecentUploads((recentFiles || []).map((f: Record<string, string>) => ({
+        id: f.id, file_name: f.file_name, created_at: f.created_at, status: f.status,
+      })))
+
+      setPendingImports(pendingCount || 0)
     } catch (err) {
       console.error('Dashboard fetch error:', err)
     }

@@ -19,9 +19,8 @@ interface AlertDocument {
   alert_type: 'expired' | 'expiring_soon' | 'renewal_due'
 }
 
-const today = new Date()
-
 function daysUntil(dateStr: string): number {
+  const today = new Date()
   const target = new Date(dateStr)
   return Math.ceil((target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
 }

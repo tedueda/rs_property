@@ -65,6 +65,7 @@ CREATE TABLE IF NOT EXISTS document_links (
   document_id UUID NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
   target_type TEXT NOT NULL,
   target_id UUID NOT NULL,
+  target_label TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
