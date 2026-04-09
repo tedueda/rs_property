@@ -66,10 +66,12 @@ interface RecentUpload {
   status: string
 }
 
+const daysUntilDate = (dateStr: string) => Math.ceil((new Date(dateStr).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
+
 const DEMO_EXPIRING_CONTRACTS: ExpiringContract[] = [
-  { id: '3', title: 'NYコーポ 保証会社契約', company_name: 'N・Yコーポレーション株式会社', contract_end_date: '2025-05-31', days_remaining: 52 },
-  { id: '1', title: '林建設 賃貸借契約書 101号室', company_name: '林建設株式会社', contract_end_date: '2026-03-31', days_remaining: 356 },
-  { id: '4', title: 'オーナーズ 事務所賃貸契約', company_name: '株式会社オーナーズ', contract_end_date: '2026-12-31', days_remaining: 631 },
+  { id: '3', title: 'NYコーポ 保証会社契約', company_name: 'N・Yコーポレーション株式会社', contract_end_date: '2025-05-31', days_remaining: daysUntilDate('2025-05-31') },
+  { id: '1', title: '林建設 賃貸借契約書 101号室', company_name: '林建設株式会社', contract_end_date: '2026-03-31', days_remaining: daysUntilDate('2026-03-31') },
+  { id: '4', title: 'オーナーズ 事務所賃貸契約', company_name: '株式会社オーナーズ', contract_end_date: '2026-12-31', days_remaining: daysUntilDate('2026-12-31') },
 ]
 
 const DEMO_RECENT_UPLOADS: RecentUpload[] = [
@@ -532,8 +534,8 @@ export function DashboardPage() {
                     <TableCell className="text-sm font-medium">{c.title}</TableCell>
                     <TableCell className="text-sm">{formatDate(c.contract_end_date)}</TableCell>
                     <TableCell className="text-right">
-                      <span className={c.days_remaining <= 90 ? 'text-red-600 font-bold' : c.days_remaining <= 180 ? 'text-yellow-600 font-medium' : 'text-gray-600'}>
-                        {c.days_remaining}{'日'}
+                      <span className={c.days_remaining <= 0 ? 'text-red-600 font-bold' : c.days_remaining <= 90 ? 'text-red-600 font-bold' : c.days_remaining <= 180 ? 'text-yellow-600 font-medium' : 'text-gray-600'}>
+                        {c.days_remaining < 0 ? `${Math.abs(c.days_remaining)}日超過` : `${c.days_remaining}日`}
                       </span>
                     </TableCell>
                   </TableRow>
