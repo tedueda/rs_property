@@ -211,6 +211,189 @@ export interface ArrearsRecord {
 }
 
 // ============================================================
+// Employee Types
+// ============================================================
+export type EmployeeStatus = 'active' | 'on_leave' | 'retired'
+
+export interface Employee {
+  id: string
+  company_id: string
+  employee_name: string
+  employee_code?: string
+  department?: string
+  position?: string
+  phone?: string
+  email?: string
+  joined_date?: string
+  status: EmployeeStatus
+  notes?: string
+  created_at: string
+  updated_at: string
+  deleted_at?: string
+  created_by?: string
+  updated_by?: string
+  company?: Company
+}
+
+// ============================================================
+// Expense Category Types
+// ============================================================
+export interface ExpenseCategory {
+  id: string
+  category_name: string
+  sort_order: number
+  notes?: string
+  created_at: string
+  updated_at: string
+  deleted_at?: string
+}
+
+// ============================================================
+// Bank Account Types
+// ============================================================
+export type AccountType = 'ordinary' | 'checking' | 'savings' | 'time_deposit'
+
+export interface BankAccount {
+  id: string
+  company_id: string
+  bank_name: string
+  branch_name?: string
+  account_type: AccountType
+  account_number: string
+  account_holder: string
+  current_balance: number
+  notes?: string
+  created_at: string
+  updated_at: string
+  deleted_at?: string
+  created_by?: string
+  updated_by?: string
+  company?: Company
+}
+
+// ============================================================
+// Expense Record Types
+// ============================================================
+export type ExpenseStatus = 'pending' | 'scheduled' | 'paid' | 'needs_review'
+export type PaymentMethod = 'bank_transfer' | 'cash' | 'credit_card' | 'direct_debit' | 'other'
+
+export interface ExpenseRecord {
+  id: string
+  company_id: string
+  payment_date: string
+  vendor_name: string
+  description?: string
+  amount: number
+  category_id?: string
+  payment_method: PaymentMethod
+  bank_account_id?: string
+  status: ExpenseStatus
+  notes?: string
+  created_at: string
+  updated_at: string
+  deleted_at?: string
+  created_by?: string
+  updated_by?: string
+  company?: Company
+  category?: ExpenseCategory
+  bank_account?: BankAccount
+}
+
+// ============================================================
+// Payroll Record Types
+// ============================================================
+export type PayrollStatus = 'draft' | 'confirmed' | 'paid' | 'needs_review'
+
+export interface PayrollRecord {
+  id: string
+  company_id: string
+  employee_id: string
+  target_month: string
+  base_salary: number
+  allowance: number
+  deduction: number
+  net_payment: number
+  payment_date?: string
+  status: PayrollStatus
+  notes?: string
+  created_at: string
+  updated_at: string
+  deleted_at?: string
+  created_by?: string
+  updated_by?: string
+  company?: Company
+  employee?: Employee
+}
+
+// ============================================================
+// Bank Transaction Types
+// ============================================================
+export type TransactionType = 'deposit' | 'withdrawal'
+
+export interface BankTransaction {
+  id: string
+  bank_account_id: string
+  transaction_date: string
+  transaction_type: TransactionType
+  description?: string
+  amount: number
+  balance_after?: number
+  related_type?: string
+  related_id?: string
+  notes?: string
+  created_at: string
+  updated_at: string
+  deleted_at?: string
+  created_by?: string
+  updated_by?: string
+  bank_account?: BankAccount
+}
+
+// ============================================================
+// Loan Repayment Types
+// ============================================================
+export type LoanRepaymentStatus = 'scheduled' | 'completed' | 'needs_review'
+
+export interface LoanRepayment {
+  id: string
+  company_id: string
+  bank_account_id?: string
+  lender_name: string
+  monthly_repayment_amount: number
+  withdrawal_day: number
+  next_withdrawal_date?: string
+  status: LoanRepaymentStatus
+  notes?: string
+  created_at: string
+  updated_at: string
+  deleted_at?: string
+  created_by?: string
+  updated_by?: string
+  company?: Company
+  bank_account?: BankAccount
+}
+
+// ============================================================
+// Fund Transfer Types
+// ============================================================
+export interface FundTransfer {
+  id: string
+  transfer_date: string
+  from_account_id: string
+  to_account_id: string
+  amount: number
+  reason?: string
+  notes?: string
+  created_at: string
+  updated_at: string
+  deleted_at?: string
+  created_by?: string
+  updated_by?: string
+  from_account?: BankAccount
+  to_account?: BankAccount
+}
+
+// ============================================================
 // Dashboard Types
 // ============================================================
 export interface DashboardStats {
@@ -239,4 +422,24 @@ export interface CompanySummary {
   payments_total: number
   arrears_count: number
   arrears_total: number
+}
+
+export interface BankAccountBalance {
+  account_id: string
+  company_name: string
+  bank_name: string
+  branch_name: string
+  account_number_masked: string
+  current_balance: number
+}
+
+export interface RepaymentSchedule {
+  id: string
+  company_name: string
+  lender_name: string
+  monthly_repayment_amount: number
+  withdrawal_day: number
+  next_withdrawal_date: string
+  account_balance: number
+  is_at_risk: boolean
 }

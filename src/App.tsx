@@ -11,6 +11,14 @@ import { TenantsMgmtPage } from '@/app/tenants-mgmt/TenantsMgmtPage'
 import { ChargesPage } from '@/app/charges/ChargesPage'
 import { PaymentsPage } from '@/app/payments/PaymentsPage'
 import { ArrearsMgmtPage } from '@/app/arrears-mgmt/ArrearsMgmtPage'
+import { EmployeesPage } from '@/app/employees/EmployeesPage'
+import { ExpenseCategoriesPage } from '@/app/expense-categories/ExpenseCategoriesPage'
+import { ExpensesPage } from '@/app/expenses/ExpensesPage'
+import { PayrollPage } from '@/app/payroll/PayrollPage'
+import { BankAccountsPage } from '@/app/bank-accounts/BankAccountsPage'
+import { BankTransactionsPage } from '@/app/bank-transactions/BankTransactionsPage'
+import { LoanRepaymentsPage } from '@/app/loan-repayments/LoanRepaymentsPage'
+import { FundTransfersPage } from '@/app/fund-transfers/FundTransfersPage'
 import { UsersSettingsPage } from '@/app/settings/UsersSettingsPage'
 import { NotFoundPage } from '@/app/NotFoundPage'
 
@@ -31,6 +39,14 @@ export default function App() {
           <Route path="charges" element={<ChargesPage />} />
           <Route path="payments" element={<PaymentsPage />} />
           <Route path="arrears-mgmt" element={<ArrearsMgmtPage />} />
+          <Route path="employees" element={<EmployeesPage />} />
+          <Route path="expense-categories" element={<ExpenseCategoriesPage />} />
+          <Route path="expenses" element={<ExpensesPage />} />
+          <Route path="payroll" element={<PayrollPage />} />
+          <Route path="bank-accounts" element={<BankAccountsPage />} />
+          <Route path="bank-transactions" element={<BankTransactionsPage />} />
+          <Route path="loan-repayments" element={<LoanRepaymentsPage />} />
+          <Route path="fund-transfers" element={<FundTransfersPage />} />
           <Route path="settings/users" element={<UsersSettingsPage />} />
         </Route>
         <Route path="*" element={<NotFoundPage />} />

@@ -39,6 +39,57 @@ export const USER_ROLES = {
   viewer: { label: '閲覧専用', description: '全機能の閲覧のみ' },
 } as const
 
+export const EMPLOYEE_STATUSES = {
+  active: { label: '在籍', color: 'bg-green-100 text-green-800' },
+  on_leave: { label: '休職中', color: 'bg-yellow-100 text-yellow-800' },
+  retired: { label: '退職', color: 'bg-gray-100 text-gray-800' },
+} as const
+
+export const EXPENSE_STATUSES = {
+  pending: { label: '未処理', color: 'bg-gray-100 text-gray-800' },
+  scheduled: { label: '支払予定', color: 'bg-blue-100 text-blue-800' },
+  paid: { label: '支払済', color: 'bg-green-100 text-green-800' },
+  needs_review: { label: '要確認', color: 'bg-pink-100 text-pink-800' },
+} as const
+
+export const PAYMENT_METHODS = {
+  bank_transfer: { label: '銀行振込' },
+  cash: { label: '現金' },
+  credit_card: { label: 'クレジットカード' },
+  direct_debit: { label: '口座引落' },
+  other: { label: 'その他' },
+} as const
+
+export const PAYROLL_STATUSES = {
+  draft: { label: '未確定', color: 'bg-gray-100 text-gray-800' },
+  confirmed: { label: '確定', color: 'bg-blue-100 text-blue-800' },
+  paid: { label: '支払済', color: 'bg-green-100 text-green-800' },
+  needs_review: { label: '要確認', color: 'bg-pink-100 text-pink-800' },
+} as const
+
+export const ACCOUNT_TYPES = {
+  ordinary: { label: '普通' },
+  checking: { label: '当座' },
+  savings: { label: '貯蓄' },
+  time_deposit: { label: '定期' },
+} as const
+
+export const TRANSACTION_TYPES = {
+  deposit: { label: '入金', color: 'bg-green-100 text-green-800' },
+  withdrawal: { label: '出金', color: 'bg-red-100 text-red-800' },
+} as const
+
+export const LOAN_REPAYMENT_STATUSES = {
+  scheduled: { label: '予定', color: 'bg-blue-100 text-blue-800' },
+  completed: { label: '実行済', color: 'bg-green-100 text-green-800' },
+  needs_review: { label: '要確認', color: 'bg-pink-100 text-pink-800' },
+} as const
+
+export function maskAccountNumber(num: string): string {
+  if (!num || num.length <= 4) return num
+  return '****' + num.slice(-4)
+}
+
 export const PREFECTURES = [
   '北海道', '青森県', '岩手県', '宮城県', '秋田県', '山形県', '福島県',
   '茨城県', '栃木県', '群馬県', '埼玉県', '千葉県', '東京都', '神奈川県',
@@ -57,4 +108,9 @@ export function formatMonth(month: string): string {
   if (!month || month.length < 7) return month
   const [y, m] = month.split('-')
   return `${y}年${parseInt(m)}月`
+}
+
+export function formatDate(date: string): string {
+  if (!date) return ''
+  return new Date(date).toLocaleDateString('ja-JP')
 }

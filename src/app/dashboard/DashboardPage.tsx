@@ -1,10 +1,10 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase, isDemoMode } from '@/lib/supabase/client'
-import { formatCurrency } from '@/lib/constants'
-import type { DashboardStats, CompanySummary } from '@/types'
+import { formatCurrency, formatDate, maskAccountNumber } from '@/lib/constants'
+import type { DashboardStats, CompanySummary, BankAccountBalance, RepaymentSchedule } from '@/types'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { Building2, Home, DoorOpen, Users, Banknote, AlertTriangle, Loader2 } from 'lucide-react'
+import { Building2, Home, DoorOpen, Users, Banknote, AlertTriangle, Loader2, Landmark, Receipt, Wallet, CalendarClock, Send, TrendingDown } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts'
 
 const DEMO_STATS: DashboardStats = {
@@ -23,12 +23,47 @@ const DEMO_STATS: DashboardStats = {
 }
 
 const DEMO_COMPANY_SUMMARIES: CompanySummary[] = [
-  { company_id: '1', company_name: '\u6797\u5efa\u8a2d\u682a\u5f0f\u4f1a\u793e', properties_count: 4, rooms_count: 30, charges_count: 25, charges_total: 2100000, payments_count: 23, payments_total: 1900000, arrears_count: 3, arrears_total: 200000 },
-  { company_id: '2', company_name: 'N\u30fbY\u30b3\u30fc\u30dd\u30ec\u30fc\u30b7\u30e7\u30f3\u682a\u5f0f\u4f1a\u793e', properties_count: 3, rooms_count: 20, charges_count: 16, charges_total: 1400000, payments_count: 15, payments_total: 1350000, arrears_count: 2, arrears_total: 50000 },
-  { company_id: '3', company_name: '\u682a\u5f0f\u4f1a\u793e\u30aa\u30fc\u30ca\u30fc\u30ba', properties_count: 2, rooms_count: 15, charges_count: 12, charges_total: 980000, payments_count: 11, payments_total: 880000, arrears_count: 1, arrears_total: 100000 },
-  { company_id: '4', company_name: '\u682a\u5f0f\u4f1a\u793e\u7167', properties_count: 2, rooms_count: 12, charges_count: 10, charges_total: 800000, payments_count: 9, payments_total: 720000, arrears_count: 1, arrears_total: 80000 },
-  { company_id: '5', company_name: '\u682a\u5f0f\u4f1a\u793eA', properties_count: 1, rooms_count: 5, charges_count: 3, charges_total: 300000, payments_count: 2, payments_total: 200000, arrears_count: 1, arrears_total: 100000 },
-  { company_id: '6', company_name: '\u682a\u5f0f\u4f1a\u793eB', properties_count: 0, rooms_count: 3, charges_count: 2, charges_total: 200000, payments_count: 2, payments_total: 150000, arrears_count: 0, arrears_total: 50000 },
+  { company_id: '1', company_name: '林建設株式会社', properties_count: 4, rooms_count: 30, charges_count: 25, charges_total: 2100000, payments_count: 23, payments_total: 1900000, arrears_count: 3, arrears_total: 200000 },
+  { company_id: '2', company_name: 'N・Yコーポレーション株式会社', properties_count: 3, rooms_count: 20, charges_count: 16, charges_total: 1400000, payments_count: 15, payments_total: 1350000, arrears_count: 2, arrears_total: 50000 },
+  { company_id: '3', company_name: '株式会社オーナーズ', properties_count: 2, rooms_count: 15, charges_count: 12, charges_total: 980000, payments_count: 11, payments_total: 880000, arrears_count: 1, arrears_total: 100000 },
+  { company_id: '4', company_name: '株式会社照', properties_count: 2, rooms_count: 12, charges_count: 10, charges_total: 800000, payments_count: 9, payments_total: 720000, arrears_count: 1, arrears_total: 80000 },
+  { company_id: '5', company_name: '株式会社A', properties_count: 1, rooms_count: 5, charges_count: 3, charges_total: 300000, payments_count: 2, payments_total: 200000, arrears_count: 1, arrears_total: 100000 },
+  { company_id: '6', company_name: '株式会社B', properties_count: 0, rooms_count: 3, charges_count: 2, charges_total: 200000, payments_count: 2, payments_total: 150000, arrears_count: 0, arrears_total: 50000 },
+]
+
+const DEMO_BANK_BALANCES: BankAccountBalance[] = [
+  { account_id: '1', company_name: '林建設株式会社', bank_name: '三井住友銀行', branch_name: '大阪中央支店', account_number_masked: '****4567', current_balance: 15800000 },
+  { account_id: '2', company_name: '林建設株式会社', bank_name: 'りそな銀行', branch_name: '本町支店', account_number_masked: '****5678', current_balance: 8200000 },
+  { account_id: '3', company_name: 'N・Yコーポレーション', bank_name: '三菱UFJ銀行', branch_name: '梅田支店', account_number_masked: '****6789', current_balance: 12500000 },
+  { account_id: '4', company_name: '株式会社オーナーズ', bank_name: '関西みらい銀行', branch_name: '天王寺支店', account_number_masked: '****7890', current_balance: 3200000 },
+  { account_id: '5', company_name: '株式会社照', bank_name: '三井住友銀行', branch_name: '難波支店', account_number_masked: '****8901', current_balance: 6700000 },
+  { account_id: '6', company_name: '株式会社A', bank_name: '池田泉州銀行', branch_name: '堺支店', account_number_masked: '****9012', current_balance: 2100000 },
+]
+
+const DEMO_REPAYMENT_SCHEDULE: RepaymentSchedule[] = [
+  { id: '1', company_name: '林建設株式会社', lender_name: '三井住友銀行', monthly_repayment_amount: 500000, withdrawal_day: 27, next_withdrawal_date: '2025-04-27', account_balance: 15800000, is_at_risk: false },
+  { id: '2', company_name: '林建設株式会社', lender_name: 'りそな銀行', monthly_repayment_amount: 350000, withdrawal_day: 25, next_withdrawal_date: '2025-04-25', account_balance: 8200000, is_at_risk: false },
+  { id: '3', company_name: 'N・Yコーポレーション', lender_name: '三菱UFJ銀行', monthly_repayment_amount: 800000, withdrawal_day: 10, next_withdrawal_date: '2025-05-10', account_balance: 12500000, is_at_risk: false },
+  { id: '4', company_name: '株式会社オーナーズ', lender_name: '日本政策金融公庫', monthly_repayment_amount: 200000, withdrawal_day: 15, next_withdrawal_date: '2025-04-15', account_balance: 3200000, is_at_risk: false },
+  { id: '5', company_name: '株式会社照', lender_name: '三井住友銀行', monthly_repayment_amount: 450000, withdrawal_day: 27, next_withdrawal_date: '2025-04-27', account_balance: 6700000, is_at_risk: false },
+]
+
+const DEMO_EXPENSE_TOTAL = 637500
+const DEMO_PAYROLL_TOTAL = 1377000
+
+interface RecentTransfer {
+  id: string
+  transfer_date: string
+  from_label: string
+  to_label: string
+  amount: number
+  reason: string
+}
+
+const DEMO_RECENT_TRANSFERS: RecentTransfer[] = [
+  { id: '1', transfer_date: '2025-04-15', from_label: '三井住友 ****4567', to_label: 'りそな ****5678', amount: 2000000, reason: '返済資金の移動' },
+  { id: '2', transfer_date: '2025-04-10', from_label: '三菱UFJ ****6789', to_label: '関西みらい ****7890', amount: 500000, reason: '経費支払準備' },
+  { id: '3', transfer_date: '2025-04-05', from_label: '三井住友 ****4567', to_label: '三井住友 ****8901', amount: 3000000, reason: '工事費用振替' },
 ]
 
 interface StatCardProps {
@@ -58,6 +93,11 @@ function StatCard({ title, value, icon, description, variant = 'default' }: Stat
 export function DashboardPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [companySummaries, setCompanySummaries] = useState<CompanySummary[]>([])
+  const [bankBalances, setBankBalances] = useState<BankAccountBalance[]>([])
+  const [repaymentSchedule, setRepaymentSchedule] = useState<RepaymentSchedule[]>([])
+  const [expenseTotal, setExpenseTotal] = useState(0)
+  const [payrollTotal, setPayrollTotal] = useState(0)
+  const [recentTransfers, setRecentTransfers] = useState<RecentTransfer[]>([])
   const [loading, setLoading] = useState(true)
 
   const fetchData = useCallback(async () => {
@@ -65,6 +105,11 @@ export function DashboardPage() {
     if (isDemoMode) {
       setStats(DEMO_STATS)
       setCompanySummaries(DEMO_COMPANY_SUMMARIES)
+      setBankBalances(DEMO_BANK_BALANCES)
+      setRepaymentSchedule(DEMO_REPAYMENT_SCHEDULE)
+      setExpenseTotal(DEMO_EXPENSE_TOTAL)
+      setPayrollTotal(DEMO_PAYROLL_TOTAL)
+      setRecentTransfers(DEMO_RECENT_TRANSFERS)
       setLoading(false)
       return
     }
@@ -127,6 +172,48 @@ export function DashboardPage() {
         }
       })
       setCompanySummaries(summaries)
+
+      // Phase 2 data
+      const [{ data: bankAccts }, { data: loans }, { data: expenses }, { data: payrolls }, { data: transfers }] = await Promise.all([
+        supabase.from('bank_accounts').select('id, company_id, bank_name, branch_name, account_number, current_balance').is('deleted_at', null),
+        supabase.from('loan_repayments').select('id, company_id, bank_account_id, lender_name, monthly_repayment_amount, withdrawal_day, next_withdrawal_date, status').is('deleted_at', null),
+        supabase.from('expense_records').select('amount').is('deleted_at', null),
+        supabase.from('payroll_records').select('net_payment').is('deleted_at', null),
+        supabase.from('fund_transfer_records').select('id, transfer_date, from_account_id, to_account_id, amount, reason').is('deleted_at', null).order('transfer_date', { ascending: false }).limit(5),
+      ])
+
+      const companyMap = Object.fromEntries((companiesData || []).map((c: Record<string, string>) => [c.id, c.name]))
+      const accountMap = Object.fromEntries((bankAccts || []).map((a: Record<string, string | number>) => [a.id, a]))
+
+      setBankBalances((bankAccts || []).map((a: Record<string, string | number>) => ({
+        account_id: String(a.id), company_name: companyMap[a.company_id as string] || '',
+        bank_name: String(a.bank_name), branch_name: String(a.branch_name || ''),
+        account_number_masked: maskAccountNumber(String(a.account_number)), current_balance: Number(a.current_balance),
+      })))
+
+      setRepaymentSchedule((loans || []).map((l: Record<string, string | number>) => {
+        const acctBalance = accountMap[l.bank_account_id as string]?.current_balance as number || 0
+        return {
+          id: String(l.id), company_name: companyMap[l.company_id as string] || '',
+          lender_name: String(l.lender_name), monthly_repayment_amount: Number(l.monthly_repayment_amount),
+          withdrawal_day: Number(l.withdrawal_day), next_withdrawal_date: String(l.next_withdrawal_date || ''),
+          account_balance: acctBalance, is_at_risk: acctBalance > 0 && acctBalance < Number(l.monthly_repayment_amount) * 2,
+        }
+      }))
+
+      setExpenseTotal((expenses || []).reduce((s: number, e: Record<string, number>) => s + Number(e.amount), 0))
+      setPayrollTotal((payrolls || []).reduce((s: number, p: Record<string, number>) => s + Number(p.net_payment), 0))
+
+      setRecentTransfers((transfers || []).map((t: Record<string, string | number>) => {
+        const fromAcct = accountMap[t.from_account_id as string]
+        const toAcct = accountMap[t.to_account_id as string]
+        return {
+          id: String(t.id), transfer_date: String(t.transfer_date),
+          from_label: fromAcct ? `${fromAcct.bank_name} ${maskAccountNumber(String(fromAcct.account_number))}` : '',
+          to_label: toAcct ? `${toAcct.bank_name} ${maskAccountNumber(String(toAcct.account_number))}` : '',
+          amount: Number(t.amount), reason: String(t.reason || ''),
+        }
+      }))
     } catch (err) {
       console.error('Dashboard fetch error:', err)
     }
@@ -162,6 +249,14 @@ export function DashboardPage() {
         <StatCard title={'\u6708\u6b21\u8acb\u6c42'} value={formatCurrency(stats.monthly_charges_total)} icon={<Banknote className="h-5 w-5" />} description={`${stats.monthly_charges_count}\u4ef6`} />
         <StatCard title={'\u672a\u53ce\u7dcf\u984d'} value={formatCurrency(stats.arrears_total)} icon={<AlertTriangle className="h-5 w-5" />} description={`${stats.arrears_count}\u4ef6`} variant="danger" />
       </div>
+
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <StatCard title={'口座残高合計'} value={formatCurrency(bankBalances.reduce((s, b) => s + b.current_balance, 0))} icon={<Landmark className="h-5 w-5" />} />
+        <StatCard title={'月次経費総額'} value={formatCurrency(expenseTotal)} icon={<Receipt className="h-5 w-5" />} />
+        <StatCard title={'月次給与総額'} value={formatCurrency(payrollTotal)} icon={<Wallet className="h-5 w-5" />} />
+        <StatCard title={'月次返済総額'} value={formatCurrency(repaymentSchedule.reduce((s, r) => s + r.monthly_repayment_amount, 0))} icon={<CalendarClock className="h-5 w-5" />} variant="danger" />
+      </div>
+
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
@@ -254,6 +349,105 @@ export function DashboardPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Phase 2: Bank Account Balances */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2"><Landmark className="h-4 w-4" />{'会社別銀行口座残高'}</CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{'会社名'}</TableHead>
+                  <TableHead>{'銀行名'}</TableHead>
+                  <TableHead className="hidden sm:table-cell">{'支店名'}</TableHead>
+                  <TableHead>{'口座番号'}</TableHead>
+                  <TableHead className="text-right">{'残高'}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {bankBalances.map((b) => (
+                  <TableRow key={b.account_id}>
+                    <TableCell className="text-sm">{b.company_name}</TableCell>
+                    <TableCell className="font-medium">{b.bank_name}</TableCell>
+                    <TableCell className="hidden sm:table-cell text-sm">{b.branch_name}</TableCell>
+                    <TableCell className="font-mono text-sm">{b.account_number_masked}</TableCell>
+                    <TableCell className="text-right font-mono font-medium">{formatCurrency(b.current_balance)}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Repayment Schedule */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2"><CalendarClock className="h-4 w-4" />{'今月の返済予定'}</CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-16">{'引落日'}</TableHead>
+                    <TableHead>{'会社'}</TableHead>
+                    <TableHead>{'借入先'}</TableHead>
+                    <TableHead className="text-right">{'月額'}</TableHead>
+                    <TableHead className="w-8"></TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {repaymentSchedule.sort((a, b) => a.withdrawal_day - b.withdrawal_day).map((r) => (
+                    <TableRow key={r.id} className={r.is_at_risk ? 'bg-red-50' : undefined}>
+                      <TableCell className="font-mono text-center">{r.withdrawal_day}{'日'}</TableCell>
+                      <TableCell className="text-sm">{r.company_name}</TableCell>
+                      <TableCell className="text-sm">{r.lender_name}</TableCell>
+                      <TableCell className="text-right font-mono text-sm">{formatCurrency(r.monthly_repayment_amount)}</TableCell>
+                      <TableCell>{r.is_at_risk && <TrendingDown className="h-4 w-4 text-red-500" />}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Recent Fund Transfers */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2"><Send className="h-4 w-4" />{'最近の資金移動'}</CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>{'日付'}</TableHead>
+                    <TableHead>{'振込元→振込先'}</TableHead>
+                    <TableHead className="text-right">{'金額'}</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {recentTransfers.length === 0 ? (
+                    <TableRow><TableCell colSpan={3} className="text-center py-4 text-muted-foreground">{'データがありません'}</TableCell></TableRow>
+                  ) : recentTransfers.map((t) => (
+                    <TableRow key={t.id}>
+                      <TableCell className="text-sm">{formatDate(t.transfer_date)}</TableCell>
+                      <TableCell className="text-sm">{t.from_label} → {t.to_label}</TableCell>
+                      <TableCell className="text-right font-mono text-sm">{formatCurrency(t.amount)}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   )
 }
