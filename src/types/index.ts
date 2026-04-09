@@ -443,3 +443,158 @@ export interface RepaymentSchedule {
   account_balance: number
   is_at_risk: boolean
 }
+
+// ============================================================
+// Document Category Types
+// ============================================================
+export interface DocumentCategory {
+  id: string
+  category_name: string
+  sort_order: number
+  notes?: string
+  created_at: string
+  updated_at: string
+  deleted_at?: string
+}
+
+// ============================================================
+// Document Types
+// ============================================================
+export type DocumentStatus = 'active' | 'expired' | 'renewal_pending' | 'cancelled' | 'needs_review'
+
+export interface Document {
+  id: string
+  category_id?: string
+  title: string
+  company_id?: string
+  property_id?: string
+  room_id?: string
+  tenant_id?: string
+  bank_account_id?: string
+  related_loan_repayment_id?: string
+  issue_date?: string
+  contract_start_date?: string
+  contract_end_date?: string
+  renewal_date?: string
+  status: DocumentStatus
+  file_path?: string
+  notes?: string
+  created_at: string
+  updated_at: string
+  deleted_at?: string
+  created_by?: string
+  updated_by?: string
+  category?: DocumentCategory
+  company?: Company
+  property?: Property
+  room?: Room
+  tenant?: Tenant
+  bank_account?: BankAccount
+}
+
+// ============================================================
+// Document Version Types
+// ============================================================
+export interface DocumentVersion {
+  id: string
+  document_id: string
+  version_number: number
+  file_path: string
+  file_name: string
+  file_size?: number
+  mime_type?: string
+  uploaded_by?: string
+  notes?: string
+  created_at: string
+}
+
+// ============================================================
+// Document Link Types
+// ============================================================
+export type DocumentLinkTargetType = 'company' | 'property' | 'room' | 'tenant' | 'bank_account' | 'loan_repayment' | 'expense' | 'payroll'
+
+export interface DocumentLink {
+  id: string
+  document_id: string
+  target_type: DocumentLinkTargetType
+  target_id: string
+  target_label?: string
+  created_at: string
+}
+
+// ============================================================
+// Document Alert Types
+// ============================================================
+export type AlertType = 'expiring_soon' | 'expired' | 'renewal_due'
+
+export interface DocumentAlert {
+  id: string
+  document_id: string
+  alert_type: AlertType
+  alert_date: string
+  is_resolved: boolean
+  resolved_at?: string
+  resolved_by?: string
+  created_at: string
+  document?: Document
+}
+
+// ============================================================
+// Uploaded File Types
+// ============================================================
+export type UploadedFileStatus = 'uploaded' | 'processing' | 'extracted' | 'review_pending' | 'confirmed' | 'error'
+
+export interface UploadedFile {
+  id: string
+  file_name: string
+  file_path: string
+  file_size: number
+  mime_type: string
+  uploaded_by?: string
+  status: UploadedFileStatus
+  notes?: string
+  created_at: string
+  updated_at: string
+}
+
+// ============================================================
+// Extracted Data Candidate Types
+// ============================================================
+export type ExtractionType = 'bank_statement' | 'receipt_invoice' | 'lease_contract' | 'loan_contract'
+export type ReviewStatus = 'pending' | 'approved' | 'rejected' | 'needs_correction'
+
+export interface ExtractedDataCandidate {
+  id: string
+  uploaded_file_id: string
+  extraction_type: ExtractionType
+  raw_text?: string
+  parsed_json?: Record<string, unknown>
+  review_status: ReviewStatus
+  reviewer_id?: string
+  reviewed_at?: string
+  notes?: string
+  created_at: string
+  updated_at: string
+  uploaded_file?: UploadedFile
+}
+
+// ============================================================
+// Import Log Types
+// ============================================================
+export type ImportStatus = 'imported' | 'extracted' | 'review_pending' | 'confirmed' | 'error'
+
+export interface ImportLog {
+  id: string
+  uploaded_file_id: string
+  extraction_type?: ExtractionType
+  status: ImportStatus
+  error_message?: string
+  confirmed_by?: string
+  confirmed_at?: string
+  target_table?: string
+  target_id?: string
+  notes?: string
+  created_at: string
+  updated_at: string
+  uploaded_file?: UploadedFile
+}

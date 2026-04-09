@@ -4,7 +4,7 @@ import { formatCurrency, formatDate, maskAccountNumber } from '@/lib/constants'
 import type { DashboardStats, CompanySummary, BankAccountBalance, RepaymentSchedule } from '@/types'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { Building2, Home, DoorOpen, Users, Banknote, AlertTriangle, Loader2, Landmark, Receipt, Wallet, CalendarClock, Send, TrendingDown } from 'lucide-react'
+import { Building2, Home, DoorOpen, Users, Banknote, AlertTriangle, Loader2, Landmark, Receipt, Wallet, CalendarClock, Send, TrendingDown, FileText, Upload, Clock } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts'
 
 const DEMO_STATS: DashboardStats = {
@@ -50,6 +50,35 @@ const DEMO_REPAYMENT_SCHEDULE: RepaymentSchedule[] = [
 
 const DEMO_EXPENSE_TOTAL = 637500
 const DEMO_PAYROLL_TOTAL = 1377000
+
+interface ExpiringContract {
+  id: string
+  title: string
+  company_name: string
+  contract_end_date: string
+  days_remaining: number
+}
+
+interface RecentUpload {
+  id: string
+  file_name: string
+  created_at: string
+  status: string
+}
+
+const DEMO_EXPIRING_CONTRACTS: ExpiringContract[] = [
+  { id: '3', title: 'NYコーポ 保証会社契約', company_name: 'N・Yコーポレーション株式会社', contract_end_date: '2025-05-31', days_remaining: 52 },
+  { id: '1', title: '林建設 賃貸借契約書 101号室', company_name: '林建設株式会社', contract_end_date: '2026-03-31', days_remaining: 356 },
+  { id: '4', title: 'オーナーズ 事務所賃貸契約', company_name: '株式会社オーナーズ', contract_end_date: '2026-12-31', days_remaining: 631 },
+]
+
+const DEMO_RECENT_UPLOADS: RecentUpload[] = [
+  { id: '1', file_name: '通帳_林建設_202503.pdf', created_at: '2025-03-25', status: '確定済' },
+  { id: '2', file_name: '領収書_修繕工事.jpg', created_at: '2025-03-20', status: '確認待ち' },
+  { id: '3', file_name: '入居契約書_佐藤.pdf', created_at: '2025-03-18', status: '抽出済' },
+]
+
+const DEMO_PENDING_IMPORTS = 2
 
 interface RecentTransfer {
   id: string
@@ -98,6 +127,9 @@ export function DashboardPage() {
   const [expenseTotal, setExpenseTotal] = useState(0)
   const [payrollTotal, setPayrollTotal] = useState(0)
   const [recentTransfers, setRecentTransfers] = useState<RecentTransfer[]>([])
+  const [expiringContracts, setExpiringContracts] = useState<ExpiringContract[]>([])
+  const [recentUploads, setRecentUploads] = useState<RecentUpload[]>([])
+  const [pendingImports, setPendingImports] = useState(0)
   const [loading, setLoading] = useState(true)
 
   const fetchData = useCallback(async () => {
@@ -110,6 +142,9 @@ export function DashboardPage() {
       setExpenseTotal(DEMO_EXPENSE_TOTAL)
       setPayrollTotal(DEMO_PAYROLL_TOTAL)
       setRecentTransfers(DEMO_RECENT_TRANSFERS)
+      setExpiringContracts(DEMO_EXPIRING_CONTRACTS)
+      setRecentUploads(DEMO_RECENT_UPLOADS)
+      setPendingImports(DEMO_PENDING_IMPORTS)
       setLoading(false)
       return
     }
@@ -445,6 +480,80 @@ export function DashboardPage() {
                 </TableBody>
               </Table>
             </div>
+          </CardContent>
+        </Card>
+      </div>
+      {/* Phase 3: Document Management Widgets */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Expiring Contracts */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2"><Clock className="h-4 w-4" />{'更新期限が近い契約書'}</CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{'書類名'}</TableHead>
+                  <TableHead>{'期限'}</TableHead>
+                  <TableHead className="text-right">{'残日数'}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {expiringContracts.length === 0 ? (
+                  <TableRow><TableCell colSpan={3} className="text-center py-4 text-muted-foreground">{'該当なし'}</TableCell></TableRow>
+                ) : expiringContracts.map((c) => (
+                  <TableRow key={c.id}>
+                    <TableCell className="text-sm font-medium">{c.title}</TableCell>
+                    <TableCell className="text-sm">{formatDate(c.contract_end_date)}</TableCell>
+                    <TableCell className="text-right">
+                      <span className={c.days_remaining <= 90 ? 'text-red-600 font-bold' : c.days_remaining <= 180 ? 'text-yellow-600 font-medium' : 'text-gray-600'}>
+                        {c.days_remaining}{'日'}
+                      </span>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+
+        {/* Recent Uploads */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2"><Upload className="h-4 w-4" />{'最近アップロードされた書類'}</CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{'ファイル名'}</TableHead>
+                  <TableHead>{'日付'}</TableHead>
+                  <TableHead>{'状態'}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {recentUploads.length === 0 ? (
+                  <TableRow><TableCell colSpan={3} className="text-center py-4 text-muted-foreground">{'データがありません'}</TableCell></TableRow>
+                ) : recentUploads.map((u) => (
+                  <TableRow key={u.id}>
+                    <TableCell className="text-sm"><div className="flex items-center gap-1"><FileText className="h-3 w-3 text-muted-foreground" />{u.file_name}</div></TableCell>
+                    <TableCell className="text-sm">{formatDate(u.created_at)}</TableCell>
+                    <TableCell className="text-sm">{u.status}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+
+        {/* Pending Imports */}
+        <Card>
+          <CardContent className="pt-6 flex flex-col items-center justify-center h-full">
+            <FileText className="h-10 w-10 text-yellow-500 mb-3" />
+            <p className="text-4xl font-bold text-yellow-600">{pendingImports}</p>
+            <p className="text-sm text-muted-foreground mt-2">{'確認待ちの取込件数'}</p>
+            <p className="text-xs text-muted-foreground mt-1">{'人による確認が必要です'}</p>
           </CardContent>
         </Card>
       </div>
