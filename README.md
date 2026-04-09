@@ -310,7 +310,7 @@ Create a `.env` file in the project root:
 ```env
 VITE_SUPABASE_URL=https://your-project.supabase.co
 VITE_SUPABASE_ANON_KEY=your-anon-key
-VITE_SUPABASE_SERVICE_ROLE_KEY=your-service-role-key  # Server-side only
+# SUPABASE_SERVICE_ROLE_KEY=your-service-role-key  # Server-side only, do NOT use VITE_ prefix
 VITE_DEMO_MODE=true
 VITE_APP_ENV=development       # development | staging | production
 VITE_STORAGE_BUCKET=documents  # Supabase Storage bucket name

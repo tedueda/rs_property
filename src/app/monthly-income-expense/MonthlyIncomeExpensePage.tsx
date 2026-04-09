@@ -73,14 +73,21 @@ export function MonthlyIncomeExpensePage() {
       return
     }
     // Production: aggregate from payments, expenses, payroll, bank_transactions
-    const [{ data: companiesData }, { data: payments }, { data: expenses }, { data: payrolls }] = await Promise.all([
+    const [{ data: companiesData }, { data: payments }, { data: expenses }, { data: payrolls }, { data: charges }] = await Promise.all([
       supabase.from('companies').select('id, name').is('deleted_at', null),
       supabase.from('payment_records').select('paid_amount, payment_date, linked_charge_id').is('deleted_at', null),
       supabase.from('expense_records').select('amount, payment_date, company_id').is('deleted_at', null),
       supabase.from('payroll_records').select('net_payment, target_month, company_id').is('deleted_at', null),
+      supabase.from('monthly_charges').select('id, company_id').is('deleted_at', null),
     ])
     const comps = companiesData || []
     setCompanies(comps)
+
+    // Build charge_id -> company_id lookup for filtering payments by company
+    const chargeCompanyMap = new Map<string, string>()
+    for (const ch of (charges || []) as Array<{ id: string; company_id: string }>) {
+      chargeCompanyMap.set(ch.id, ch.company_id)
+    }
 
     // Build monthly aggregation
     const result: MonthlyIncomeExpense[] = []
@@ -95,7 +102,7 @@ export function MonthlyIncomeExpensePage() {
         const month = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
 
         const monthPayments = (payments || []).filter((p: Record<string, string>) =>
-          p.payment_date?.startsWith(month) && p.linked_charge_id
+          p.payment_date?.startsWith(month) && p.linked_charge_id && chargeCompanyMap.get(p.linked_charge_id) === comp.id
         )
         const monthExpenses = compExpenses.filter((e: Record<string, string>) =>
           e.payment_date?.startsWith(month)

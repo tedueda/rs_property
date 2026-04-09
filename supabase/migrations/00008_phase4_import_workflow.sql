@@ -101,12 +101,12 @@ CREATE OR REPLACE VIEW monthly_expense_summary AS
 SELECT
   c.id AS company_id,
   c.name AS company_name,
-  to_char(e.expense_date::date, 'YYYY-MM') AS month,
+  to_char(e.payment_date::date, 'YYYY-MM') AS month,
   SUM(e.amount) AS expense_total
-FROM expenses e
+FROM expense_records e
 JOIN companies c ON e.company_id = c.id
 WHERE e.deleted_at IS NULL
-GROUP BY c.id, c.name, to_char(e.expense_date::date, 'YYYY-MM');
+GROUP BY c.id, c.name, to_char(e.payment_date::date, 'YYYY-MM');
 
 -- ============================================================
 -- 7. RLS Policies for new tables

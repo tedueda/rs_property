@@ -218,7 +218,7 @@ export function findMatchCandidates(
     }
 
     // 5. Alias match
-    if (bestScore < 0.88 && tenant.aliases && tenant.aliases.length > 0) {
+    if (bestScore < 0.92 && tenant.aliases && tenant.aliases.length > 0) {
       for (const alias of tenant.aliases) {
         const normalizedAlias = normalizeName(alias)
         if (normalizedPayer === normalizedAlias) {
