@@ -54,6 +54,9 @@ export function useAuth() {
   }, [setUser, setLoading])
 
   const signIn = async (email: string, password: string) => {
+    if (isDemoMode) {
+      return { error: null }
+    }
     const { error } = await supabase.auth.signInWithPassword({ email, password })
     return { error }
   }
