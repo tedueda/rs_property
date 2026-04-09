@@ -119,12 +119,14 @@ export function DocumentDetailPage() {
     }
     if (selectedFile) {
       const filePath = `documents/${id}/${Date.now()}_${selectedFile.name}`
-      await supabase.storage.from('documents').upload(filePath, selectedFile)
-      await supabase.from('document_versions').insert({
-        document_id: id, version_number: versions.length + 1, file_path: filePath,
-        file_name: selectedFile.name, file_size: selectedFile.size, mime_type: selectedFile.type,
-        notes: uploadNotes, uploaded_by: user?.id,
-      })
+      const { error: uploadError } = await supabase.storage.from('documents').upload(filePath, selectedFile)
+      if (!uploadError) {
+        await supabase.from('document_versions').insert({
+          document_id: id, version_number: versions.length + 1, file_path: filePath,
+          file_name: selectedFile.name, file_size: selectedFile.size, mime_type: selectedFile.type,
+          notes: uploadNotes, uploaded_by: user?.id,
+        })
+      }
     }
     setSaving(false); setUploadDialogOpen(false); setUploadNotes(''); setSelectedFile(null); fetchData()
   }
