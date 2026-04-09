@@ -189,47 +189,47 @@ CREATE POLICY "import_review_histories_select" ON import_review_histories FOR SE
 
 -- Write access: accounting_manager, payment_staff, expense_staff
 CREATE POLICY "document_categories_insert" ON document_categories FOR INSERT TO authenticated
-  WITH CHECK (user_has_role(auth.uid(), ARRAY['accounting_manager'::TEXT]));
+  WITH CHECK (user_has_role(ARRAY['accounting_manager'::TEXT]));
 CREATE POLICY "document_categories_update" ON document_categories FOR UPDATE TO authenticated
-  USING (user_has_role(auth.uid(), ARRAY['accounting_manager'::TEXT]));
+  USING (user_has_role(ARRAY['accounting_manager'::TEXT]));
 CREATE POLICY "document_categories_delete" ON document_categories FOR DELETE TO authenticated
-  USING (user_has_role(auth.uid(), ARRAY['accounting_manager'::TEXT]));
+  USING (user_has_role(ARRAY['accounting_manager'::TEXT]));
 
 CREATE POLICY "documents_insert" ON documents FOR INSERT TO authenticated
-  WITH CHECK (user_has_role(auth.uid(), ARRAY['accounting_manager'::TEXT, 'payment_staff'::TEXT, 'expense_staff'::TEXT]));
+  WITH CHECK (user_has_role(ARRAY['accounting_manager'::TEXT, 'payment_staff'::TEXT, 'expense_staff'::TEXT]));
 CREATE POLICY "documents_update" ON documents FOR UPDATE TO authenticated
-  USING (user_has_role(auth.uid(), ARRAY['accounting_manager'::TEXT, 'payment_staff'::TEXT, 'expense_staff'::TEXT]));
+  USING (user_has_role(ARRAY['accounting_manager'::TEXT, 'payment_staff'::TEXT, 'expense_staff'::TEXT]));
 CREATE POLICY "documents_delete" ON documents FOR DELETE TO authenticated
-  USING (user_has_role(auth.uid(), ARRAY['accounting_manager'::TEXT, 'payment_staff'::TEXT, 'expense_staff'::TEXT]));
+  USING (user_has_role(ARRAY['accounting_manager'::TEXT, 'payment_staff'::TEXT, 'expense_staff'::TEXT]));
 
 CREATE POLICY "document_versions_insert" ON document_versions FOR INSERT TO authenticated
-  WITH CHECK (user_has_role(auth.uid(), ARRAY['accounting_manager'::TEXT, 'payment_staff'::TEXT, 'expense_staff'::TEXT]));
+  WITH CHECK (user_has_role(ARRAY['accounting_manager'::TEXT, 'payment_staff'::TEXT, 'expense_staff'::TEXT]));
 
 CREATE POLICY "document_links_insert" ON document_links FOR INSERT TO authenticated
-  WITH CHECK (user_has_role(auth.uid(), ARRAY['accounting_manager'::TEXT, 'payment_staff'::TEXT, 'expense_staff'::TEXT]));
+  WITH CHECK (user_has_role(ARRAY['accounting_manager'::TEXT, 'payment_staff'::TEXT, 'expense_staff'::TEXT]));
 CREATE POLICY "document_links_delete" ON document_links FOR DELETE TO authenticated
-  USING (user_has_role(auth.uid(), ARRAY['accounting_manager'::TEXT, 'payment_staff'::TEXT, 'expense_staff'::TEXT]));
+  USING (user_has_role(ARRAY['accounting_manager'::TEXT, 'payment_staff'::TEXT, 'expense_staff'::TEXT]));
 
 CREATE POLICY "document_alerts_update" ON document_alerts FOR UPDATE TO authenticated
-  USING (user_has_role(auth.uid(), ARRAY['accounting_manager'::TEXT, 'payment_staff'::TEXT, 'expense_staff'::TEXT]));
+  USING (user_has_role(ARRAY['accounting_manager'::TEXT, 'payment_staff'::TEXT, 'expense_staff'::TEXT]));
 
 CREATE POLICY "uploaded_files_insert" ON uploaded_files FOR INSERT TO authenticated
-  WITH CHECK (user_has_role(auth.uid(), ARRAY['accounting_manager'::TEXT, 'payment_staff'::TEXT, 'expense_staff'::TEXT]));
+  WITH CHECK (user_has_role(ARRAY['accounting_manager'::TEXT, 'payment_staff'::TEXT, 'expense_staff'::TEXT]));
 CREATE POLICY "uploaded_files_update" ON uploaded_files FOR UPDATE TO authenticated
-  USING (user_has_role(auth.uid(), ARRAY['accounting_manager'::TEXT, 'payment_staff'::TEXT, 'expense_staff'::TEXT]));
+  USING (user_has_role(ARRAY['accounting_manager'::TEXT, 'payment_staff'::TEXT, 'expense_staff'::TEXT]));
 
 CREATE POLICY "extracted_data_candidates_insert" ON extracted_data_candidates FOR INSERT TO authenticated
-  WITH CHECK (user_has_role(auth.uid(), ARRAY['accounting_manager'::TEXT, 'payment_staff'::TEXT, 'expense_staff'::TEXT]));
+  WITH CHECK (user_has_role(ARRAY['accounting_manager'::TEXT, 'payment_staff'::TEXT, 'expense_staff'::TEXT]));
 CREATE POLICY "extracted_data_candidates_update" ON extracted_data_candidates FOR UPDATE TO authenticated
-  USING (user_has_role(auth.uid(), ARRAY['accounting_manager'::TEXT, 'payment_staff'::TEXT, 'expense_staff'::TEXT]));
+  USING (user_has_role(ARRAY['accounting_manager'::TEXT, 'payment_staff'::TEXT, 'expense_staff'::TEXT]));
 
 CREATE POLICY "import_logs_insert" ON import_logs FOR INSERT TO authenticated
-  WITH CHECK (user_has_role(auth.uid(), ARRAY['accounting_manager'::TEXT, 'payment_staff'::TEXT, 'expense_staff'::TEXT]));
+  WITH CHECK (user_has_role(ARRAY['accounting_manager'::TEXT, 'payment_staff'::TEXT, 'expense_staff'::TEXT]));
 CREATE POLICY "import_logs_update" ON import_logs FOR UPDATE TO authenticated
-  USING (user_has_role(auth.uid(), ARRAY['accounting_manager'::TEXT, 'payment_staff'::TEXT, 'expense_staff'::TEXT]));
+  USING (user_has_role(ARRAY['accounting_manager'::TEXT, 'payment_staff'::TEXT, 'expense_staff'::TEXT]));
 
 CREATE POLICY "import_review_histories_insert" ON import_review_histories FOR INSERT TO authenticated
-  WITH CHECK (user_has_role(auth.uid(), ARRAY['accounting_manager'::TEXT, 'payment_staff'::TEXT, 'expense_staff'::TEXT]));
+  WITH CHECK (user_has_role(ARRAY['accounting_manager'::TEXT, 'payment_staff'::TEXT, 'expense_staff'::TEXT]));
 
 -- ============================================================
 -- 12. Seed Data - Document Categories
