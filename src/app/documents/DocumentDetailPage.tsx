@@ -43,8 +43,8 @@ const DEMO_DOCUMENTS: Record<string, Document> = {
 
 const DEMO_VERSIONS: Record<string, DocumentVersion[]> = {
   '1': [
-    { id: 'v1', document_id: '1', version_number: 1, file_path: '/docs/lease_101_v1.pdf', file_name: '賃貸借契約書_101号室_v1.pdf', file_size: 2450000, mime_type: 'application/pdf', notes: '初版', created_at: '2024-04-01' },
     { id: 'v2', document_id: '1', version_number: 2, file_path: '/docs/lease_101_v2.pdf', file_name: '賃貸借契約書_101号室_v2.pdf', file_size: 2580000, mime_type: 'application/pdf', notes: '特約追加', created_at: '2024-06-15' },
+    { id: 'v1', document_id: '1', version_number: 1, file_path: '/docs/lease_101_v1.pdf', file_name: '賃貸借契約書_101号室_v1.pdf', file_size: 2450000, mime_type: 'application/pdf', notes: '初版', created_at: '2024-04-01' },
   ],
   '2': [
     { id: 'v3', document_id: '2', version_number: 1, file_path: '/docs/loan_smbc.pdf', file_name: '借入契約書_三井住友銀行.pdf', file_size: 3100000, mime_type: 'application/pdf', notes: '原本スキャン', created_at: '2023-01-15' },
