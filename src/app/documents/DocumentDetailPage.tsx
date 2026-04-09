@@ -268,7 +268,7 @@ export function DocumentDetailPage() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="text-lg">関連先 ({links.length}件)</CardTitle>
-              {editable && <Button size="sm" variant="outline" onClick={() => setLinkDialogOpen(true)}><Link2 className="h-4 w-4 mr-1" />追加</Button>}
+              {editable && <Button size="sm" variant="outline" onClick={() => { setLinkDialogOpen(true); fetchTargetOptions(linkTargetType) }}><Link2 className="h-4 w-4 mr-1" />追加</Button>}
             </CardHeader>
             <CardContent>
               {links.length === 0 ? (

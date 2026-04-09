@@ -564,7 +564,7 @@ export function DashboardPage() {
                   <TableRow key={u.id}>
                     <TableCell className="text-sm"><div className="flex items-center gap-1"><FileText className="h-3 w-3 text-muted-foreground" />{u.file_name}</div></TableCell>
                     <TableCell className="text-sm">{formatDate(u.created_at)}</TableCell>
-                    <TableCell className="text-sm">{u.status}</TableCell>
+                    <TableCell className="text-sm">{({uploaded:'取込済',processing:'処理中',extracted:'抽出済',review_pending:'確認待ち',confirmed:'確定済',error:'エラー'} as Record<string,string>)[u.status] || u.status}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
