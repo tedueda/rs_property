@@ -287,7 +287,7 @@ export function ChargesPage() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)}>キャンセル</Button>
-            <Button onClick={handleSave} disabled={saving || !form.company_id || !form.target_month}>{saving ? '保存中...' : '保存'}</Button>
+            <Button onClick={handleSave} disabled={saving || !form.company_id || !form.property_id || !form.room_id || !form.tenant_id || !form.target_month}>{saving ? '保存中...' : '保存'}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

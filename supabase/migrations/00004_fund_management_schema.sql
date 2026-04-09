@@ -186,11 +186,14 @@ $$;
 -- ============================================================
 -- 11. Insert initial companies
 -- ============================================================
-INSERT INTO companies (name, company_code, notes) VALUES
+INSERT INTO companies (name, company_code, notes)
+SELECT v.name, v.company_code, v.notes
+FROM (VALUES
   ('林建設株式会社', 'HAYASHI', '不動産管理グループ'),
   ('N・Yコーポレーション株式会社', 'NYCORP', '不動産管理グループ'),
   ('株式会社オーナーズ', 'OWNERS', '不動産管理グループ'),
   ('株式会社照', 'TERU', '不動産管理グループ'),
   ('株式会社A', 'COMP_A', '仮名称'),
   ('株式会社B', 'COMP_B', '仮名称')
-ON CONFLICT DO NOTHING;
+) AS v(name, company_code, notes)
+WHERE NOT EXISTS (SELECT 1 FROM companies c WHERE c.company_code = v.company_code);
