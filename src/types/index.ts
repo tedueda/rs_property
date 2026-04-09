@@ -598,3 +598,49 @@ export interface ImportLog {
   updated_at: string
   uploaded_file?: UploadedFile
 }
+
+// ============================================================
+// Phase 4: Tenant Alias Types (表記ゆれ対応)
+// ============================================================
+export interface TenantAlias {
+  id: string
+  tenant_id: string
+  alias_name: string
+  alias_name_normalized: string
+  source?: string
+  created_at: string
+}
+
+export interface PayerNameAlias {
+  id: string
+  payer_name: string
+  payer_name_normalized: string
+  tenant_id?: string
+  source?: string
+  created_at: string
+}
+
+export interface MatchHistoryRecord {
+  id: string
+  payer_name: string
+  matched_tenant_id?: string
+  match_reason?: string
+  confidence_score?: number
+  confirmed_by?: string
+  confirmed_at?: string
+  created_at: string
+}
+
+// ============================================================
+// Phase 4: Monthly Income/Expense Types (月次収支)
+// ============================================================
+export interface MonthlyIncomeExpense {
+  company_id: string
+  company_name: string
+  month: string
+  income_total: number
+  expense_total: number
+  net_income: number
+  income_breakdown: { label: string; amount: number }[]
+  expense_breakdown: { label: string; amount: number }[]
+}

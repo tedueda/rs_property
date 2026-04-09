@@ -5,7 +5,7 @@ import {
   LayoutDashboard, Building2, Home, DoorOpen, Users, Banknote,
   CreditCard, AlertTriangle, Settings, Menu, X,
   UserCog, FolderOpen, Receipt, Wallet, Landmark, ArrowLeftRight, CalendarClock, Send,
-  FileText, Upload, ClipboardCheck, History, Bell
+  FileText, Upload, ClipboardCheck, History, Bell, TrendingUp
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
@@ -69,6 +69,12 @@ const navSections: NavSection[] = [
       { path: '/file-upload', label: 'ファイル取込', icon: Upload },
       { path: '/import-review', label: '取込確認', icon: ClipboardCheck },
       { path: '/import-history', label: '取込履歴', icon: History },
+    ],
+  },
+  {
+    title: 'レポート',
+    items: [
+      { path: '/monthly-income-expense', label: '月次収支', icon: TrendingUp },
     ],
   },
   {

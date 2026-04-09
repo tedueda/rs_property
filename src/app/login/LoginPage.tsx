@@ -9,7 +9,7 @@ import { Building2, Loader2 } from 'lucide-react'
 
 export function LoginPage() {
   const { isAuthenticated, isLoading, signIn } = useAuth()
-  const [email, setEmail] = useState('')
+  const [loginId, setLoginId] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -24,8 +24,8 @@ export function LoginPage() {
     e.preventDefault()
     setError('')
     setLoading(true)
-    const { error } = await signIn(email, password)
-    if (error) setError('メールアドレスまたはパスワードが正しくありません')
+    const { error } = await signIn(loginId, password)
+    if (error) setError('ログインIDまたはパスワードが正しくありません')
     setLoading(false)
   }
 
@@ -43,8 +43,8 @@ export function LoginPage() {
           <form onSubmit={handleSubmit} className="space-y-4">
             {error && <div className="rounded-md bg-red-50 p-3 text-sm text-red-700">{error}</div>}
             <div className="space-y-2">
-              <Label htmlFor="email">メールアドレス</Label>
-              <Input id="email" type="email" placeholder="admin@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required />
+              <Label htmlFor="loginId">ログインID</Label>
+              <Input id="loginId" type="text" placeholder="admin" value={loginId} onChange={(e) => setLoginId(e.target.value)} required autoComplete="username" />
             </div>
             <div className="space-y-2">
               <Label htmlFor="password">パスワード</Label>

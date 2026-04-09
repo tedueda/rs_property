@@ -202,6 +202,88 @@ This application centralizes fund management for a real estate management group,
 | President | Read-only for Phase 3 features |
 | View-only | Read-only for Phase 3 features |
 
+## Phase 4 Implementation (Import-Centric Refactoring)
+
+### 改修1+6: Dashboard Redesign (`/dashboard`)
+- **File Import Section** at top: large drag & drop area, supported formats (JPG, PNG, HEIF, PDF, Excel, Word)
+- **Important Summary Cards**: bank total balance, this month's repayments, large payments due, pending reviews
+- **Panel Menu**: feature cards for navigation (rent, payments, arrears, expenses, payroll, repayments, documents, import history, monthly P&L, master data)
+- Simplified layout: important info visible at top, other features as clickable panels
+
+### 改修2+3: Import Target Selection & Auto-Classification (`/file-upload`)
+- File upload with import target selection (11 business data types)
+- Auto-estimation of import target from file content
+- **Bank Statement Classification**: 10 categories (rent income, expenses, tax, utilities, loan repayment, fund transfer, salary, guarantee company, other, needs review)
+- **Excel Data Classification**: sheet-level analysis, column header detection, data type estimation
+- Column mapping UI for Excel imports
+- Manual override: user can change any auto-classification
+- No auto-confirmation: all classifications are suggestions only
+
+### 改修4: OCR Integration (`/import-review`)
+- Left/right review layout: source data on left, editable fields on right
+- OCR confidence display with color-coded badges (green ≥90%, yellow ≥70%, red <70%)
+- Bank transaction classification results with confidence and reasoning
+- Raw OCR text display in pre-formatted block
+- Editable JSON fields for extracted data
+- Review notes field
+- **Provider Abstraction**: pluggable OCR engine architecture (`src/lib/ocrProvider.ts`)
+  - Supports: Tesseract.js, Google Cloud Vision, AWS Textract, Azure Form Recognizer
+  - Switchable via `VITE_OCR_PROVIDER` environment variable
+- Status: pending → approved / rejected / needs_correction
+- Human review mandatory (no auto-confirmation)
+
+### 改修5: Monthly Income/Expense (`/monthly-income-expense`)
+- Company selector with per-company financial summary
+- Monthly income total, expense total, net income
+- Income breakdown: rent, guarantee company, other
+- Expense breakdown: maintenance, utilities, tax, salary, loan repayment, other
+- Month-by-month comparison with previous month delta
+- Revenue trend chart (Recharts bar + line combo)
+- Trend indicators with color coding (green for positive, red for negative)
+
+### 改修7: Login ID/Password Style (`/login`)
+- Login form labeled as "ログインID" instead of email
+- Password field with show/hide toggle
+- Login ID + Password authentication flow
+- Logout navigation clearly accessible
+- Password reset flow maintained
+- Structure prepared for future 2FA addition
+
+### 改修8: Supabase Production Settings
+- `.env.production.template`: production environment variable template
+- `docs/SUPABASE_PRODUCTION_GUIDE.md`: comprehensive production setup guide
+  - Environment variables table
+  - Database migration order
+  - Authentication configuration
+  - Storage bucket setup with RLS policies
+  - RLS verification checklist
+  - Role-based access matrix
+  - OCR provider setup
+  - 2FA preparation notes
+
+### 改修9: Tenant Name Fuzzy Matching
+- **Name Normalization** (`src/lib/nameNormalizer.ts`):
+  - Full-width/half-width katakana unification
+  - Space removal (full-width and half-width)
+  - Symbol normalization
+  - Case insensitivity
+  - Consecutive/leading/trailing whitespace handling
+- **Match Reasons**: exact, normalized_exact, kana_match, space_removed_match, similar, alias_match, needs_review
+- **Fuzzy Match Dialog** in Payment Management:
+  - Search button next to payer name field
+  - Candidate list with confidence scores and match reasons
+  - Color-coded confidence (green ≥90%, yellow ≥70%, red <70%)
+  - User selects from candidates (no auto-confirmation)
+- **Database Support** (migration `00008`):
+  - `tenant_aliases` table for alias name management
+  - `payer_name_aliases` table for bank payer name variations
+  - `match_history_records` table for learning from past matches
+  - Tenant fields: `tenant_name_normalized`, `tenant_name_kana`, `bank_payer_name`
+
+### New Libraries (Phase 4)
+- `xlsx`: Excel file parsing for import workflow
+- `recharts`: Charts for monthly income/expense visualization
+
 ## Database Schema
 
 Main tables (see `supabase/migrations/`):
@@ -215,6 +297,8 @@ Main tables (see `supabase/migrations/`):
 - `document_links`, `document_alerts` (Phase 3)
 - `uploaded_files`, `extracted_data_candidates` (Phase 3)
 - `import_logs`, `import_review_histories` (Phase 3)
+- `tenant_aliases`, `payer_name_aliases`, `match_history_records` (Phase 4)
+- `monthly_income_summary`, `monthly_expense_summary` (Phase 4, views)
 
 All tables include: `id`, `created_at`, `updated_at`, `deleted_at`, `created_by`, `updated_by`
 Soft delete pattern (logical deletion with `deleted_at`).
@@ -226,10 +310,15 @@ Create a `.env` file in the project root:
 ```env
 VITE_SUPABASE_URL=https://your-project.supabase.co
 VITE_SUPABASE_ANON_KEY=your-anon-key
+VITE_SUPABASE_SERVICE_ROLE_KEY=your-service-role-key  # Server-side only
 VITE_DEMO_MODE=true
+VITE_APP_ENV=development       # development | staging | production
+VITE_STORAGE_BUCKET=documents  # Supabase Storage bucket name
+VITE_OCR_PROVIDER=tesseract    # tesseract | google_vision | aws_textract | azure_form
 ```
 
 Set `VITE_DEMO_MODE=true` to run with demo data (no Supabase connection required).
+See `.env.production.template` and `docs/SUPABASE_PRODUCTION_GUIDE.md` for production setup.
 
 ## Setup Instructions
 
@@ -266,6 +355,9 @@ npm run build
 
    # Apply Phase 3 schema migration
    psql -f supabase/migrations/00007_phase3_document_management.sql
+
+   # Apply Phase 4 import workflow migration
+   psql -f supabase/migrations/00008_phase4_import_workflow.sql
    ```
 3. Set environment variables with your Supabase credentials
 
@@ -293,9 +385,10 @@ src/
     documents/            # Document management & detail (Phase 3)
     document-alerts/      # Document expiration alerts (Phase 3)
     file-upload/          # File upload infrastructure (Phase 3)
-    import-review/        # OCR/extraction review (Phase 3)
+    import-review/        # OCR/extraction review (Phase 3, rewritten Phase 4)
     import-history/       # Import history tracking (Phase 3)
-    login/                # Login & password reset
+    login/                # Login & password reset (updated Phase 4)
+    monthly-income-expense/ # Monthly P&L per company (Phase 4)
     payments/             # Payment management
     payroll/              # Payroll management (Phase 2)
     properties-mgmt/      # Property management
@@ -308,7 +401,12 @@ src/
     ui/                   # shadcn/ui components
   hooks/                  # Custom React hooks
   lib/                    # Utilities, constants, permissions, Supabase client
+    bankClassifier.ts     # Bank transaction auto-classification (Phase 4)
+    excelClassifier.ts    # Excel data type detection (Phase 4)
+    nameNormalizer.ts     # Tenant name fuzzy matching (Phase 4)
+    ocrProvider.ts        # OCR provider abstraction (Phase 4)
   store/                  # Zustand store
+    import.ts             # Import workflow state (Phase 4)
   types/                  # TypeScript type definitions
 supabase/
   migrations/             # SQL migration files
