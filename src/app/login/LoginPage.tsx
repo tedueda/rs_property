@@ -44,7 +44,7 @@ export function LoginPage() {
             {error && <div className="rounded-md bg-red-50 p-3 text-sm text-red-700">{error}</div>}
             <div className="space-y-2">
               <Label htmlFor="loginId">ログインID</Label>
-              <Input id="loginId" type="text" placeholder="admin" value={loginId} onChange={(e) => setLoginId(e.target.value)} required autoComplete="username" />
+              <Input id="loginId" type="email" placeholder="user@example.com" value={loginId} onChange={(e) => setLoginId(e.target.value)} required autoComplete="username" />
             </div>
             <div className="space-y-2">
               <Label htmlFor="password">パスワード</Label>

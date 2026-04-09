@@ -7,7 +7,7 @@ import type { UploadedFile } from '@/types'
 import { UPLOADED_FILE_STATUSES, ALLOWED_FILE_EXTENSIONS, formatFileSize, formatDate } from '@/lib/constants'
 import { useImportStore, type ImportTargetType, IMPORT_TARGET_LABELS } from '@/store/import'
 import { isOcrSupported, getOcrProvider } from '@/lib/ocrProvider'
-import { analyzeExcelFileFromFile, type SheetAnalysis } from '@/lib/excelClassifier'
+import { analyzeExcelFileFromFile, type SheetAnalysis, type ExcelImportTarget } from '@/lib/excelClassifier'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -31,6 +31,23 @@ function getFileIcon(mimeType: string) {
   if (mimeType.includes('spreadsheet') || mimeType.includes('excel')) return FileSpreadsheet
   if (mimeType.includes('pdf') || mimeType.includes('word')) return FileText
   return File
+}
+
+// Map ExcelImportTarget values to ImportTargetType values
+const EXCEL_TO_IMPORT_TARGET: Record<ExcelImportTarget, ImportTargetType> = {
+  bank_transactions: 'bank_statement',
+  rent_roll: 'rent_roll',
+  tenant_list: 'other',
+  expense_list: 'expense_receipt',
+  payroll_data: 'payroll_data',
+  room_list: 'room_info',
+  property_list: 'property_info',
+  loan_schedule: 'loan_contract',
+  unknown: 'other',
+}
+
+function mapExcelTarget(excelTarget: ExcelImportTarget): ImportTargetType {
+  return EXCEL_TO_IMPORT_TARGET[excelTarget] || 'other'
 }
 
 function guessImportTarget(file: File): ImportTargetType {
@@ -111,8 +128,9 @@ export function FileUploadPage() {
         analyzeExcelFileFromFile(f).then(sheets => {
           setExcelSheets(sheets)
           if (sheets.length > 0 && sheets[0].suggestedTarget !== 'unknown') {
-            setImportTarget(sheets[0].suggestedTarget as ImportTargetType)
-            setAutoGuess(`Excel\u5206\u6790: ${IMPORT_TARGET_LABELS[sheets[0].suggestedTarget as ImportTargetType] || sheets[0].suggestedTarget}`)
+            const mapped = mapExcelTarget(sheets[0].suggestedTarget)
+            setImportTarget(mapped)
+            setAutoGuess(`Excel\u5206\u6790: ${IMPORT_TARGET_LABELS[mapped] || sheets[0].suggestedTarget}`)
           }
           setAnalyzingExcel(false)
         }).catch(() => setAnalyzingExcel(false))
@@ -171,7 +189,7 @@ export function FileUploadPage() {
       if (!uploadError) {
         const { data: fileRecord } = await supabase.from('uploaded_files').insert({
           file_name: file.name, file_path: filePath, file_size: file.size,
-          mime_type: file.type, uploaded_by: user?.id, status: 'uploaded', notes,
+          mime_type: file.type, uploaded_by: user?.id, status: 'uploaded', notes, import_target: importTarget,
         }).select().single()
         if (fileRecord) {
           await supabase.from('extracted_data_candidates').insert({
