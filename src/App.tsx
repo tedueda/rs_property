@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { MainLayout } from '@/components/layout/MainLayout'
 import { LoginPage } from '@/app/login/LoginPage'
 import { ResetPasswordPage } from '@/app/login/ResetPasswordPage'
+import { UpdatePasswordPage } from '@/app/login/UpdatePasswordPage'
 import { DashboardPage } from '@/app/dashboard/DashboardPage'
 import { CompaniesPage } from '@/app/companies/CompaniesPage'
 import { PropertiesMgmtPage } from '@/app/properties-mgmt/PropertiesMgmtPage'
@@ -19,6 +20,7 @@ export default function App() {
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
+        <Route path="/update-password" element={<UpdatePasswordPage />} />
         <Route path="/" element={<MainLayout />}>
           <Route index element={<Navigate to="/dashboard" replace />} />
           <Route path="dashboard" element={<DashboardPage />} />

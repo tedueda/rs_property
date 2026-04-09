@@ -151,6 +151,7 @@ export function ChargesPage() {
   }
 
   const filteredProperties = filterCompany !== 'all' ? properties.filter(p => p.company_id === filterCompany) : properties
+  const formFilteredProperties = form.company_id ? properties.filter(p => p.company_id === form.company_id) : properties
   const filteredRooms = form.property_id ? rooms.filter(r => r.property_id === form.property_id) : rooms
   const filteredTenants = form.company_id ? tenants.filter(t => t.company_id === form.company_id) : tenants
 
@@ -248,7 +249,7 @@ export function ChargesPage() {
                 <Label>物件 <span className="text-red-500">*</span></Label>
                 <Select value={form.property_id} onValueChange={(v) => setForm({ ...form, property_id: v, room_id: '' })}>
                   <SelectTrigger><SelectValue placeholder="選択" /></SelectTrigger>
-                  <SelectContent>{filteredProperties.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}</SelectContent>
+                  <SelectContent>{formFilteredProperties.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
               <div className="space-y-2">

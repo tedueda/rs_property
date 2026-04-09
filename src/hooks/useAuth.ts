@@ -8,6 +8,15 @@ export function useAuth() {
 
   useEffect(() => {
     if (isDemoMode) {
+      setUser({
+        id: 'demo-user',
+        email: 'demo@example.com',
+        full_name: 'デモユーザー',
+        role: 'admin',
+        company_id: '1',
+        created_at: '',
+        updated_at: '',
+      } as User)
       setLoading(false)
       return
     }

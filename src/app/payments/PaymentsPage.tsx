@@ -75,14 +75,14 @@ export function PaymentsPage() {
   }
 
   const calcDifference = (paidAmount: string, chargeId: string): number => {
-    if (!chargeId) return 0
+    if (!chargeId || chargeId === 'none') return 0
     const charge = charges.find(c => c.id === chargeId)
     if (!charge) return 0
     return Number(paidAmount) - charge.billed_total
   }
 
   const determineStatus = (paidAmount: string, chargeId: string): string => {
-    if (!chargeId) return 'unmatched'
+    if (!chargeId || chargeId === 'none') return 'unmatched'
     const diff = calcDifference(paidAmount, chargeId)
     if (diff === 0) return 'matched'
     if (diff < 0) return 'partial'
@@ -107,7 +107,7 @@ export function PaymentsPage() {
     const status = determineStatus(form.paid_amount, form.linked_charge_id)
     const payload = {
       payment_date: form.payment_date, payer_name: form.payer_name, description: form.description,
-      paid_amount: Number(form.paid_amount), linked_charge_id: form.linked_charge_id || null,
+      paid_amount: Number(form.paid_amount), linked_charge_id: form.linked_charge_id === 'none' ? null : (form.linked_charge_id || null),
       difference_amount: diff, status,
     }
     if (isDemoMode) {
@@ -217,14 +217,14 @@ export function PaymentsPage() {
               <Select value={form.linked_charge_id} onValueChange={(v) => setForm({ ...form, linked_charge_id: v })}>
                 <SelectTrigger><SelectValue placeholder="請求を選択（任意）" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">紐付けなし</SelectItem>
+                  <SelectItem value="none">紐付けなし</SelectItem>
                   {charges.map(c => (
                     <SelectItem key={c.id} value={c.id}>{c.target_month} - {formatCurrency(c.billed_total)}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
-            {form.linked_charge_id && (
+            {form.linked_charge_id && form.linked_charge_id !== 'none' && (
               <div className="border rounded-md p-3 bg-gray-50">
                 <div className="flex justify-between text-sm">
                   <span>差額</span>
