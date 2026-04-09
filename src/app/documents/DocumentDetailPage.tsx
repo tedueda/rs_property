@@ -91,7 +91,7 @@ export function DocumentDetailPage() {
       return
     }
     const [{ data: docData }, { data: versData }, { data: linksData }] = await Promise.all([
-      supabase.from('documents').select('*, category:document_categories(*), company:companies(*)').eq('id', id).single(),
+      supabase.from('documents').select('*, category:document_categories(*), company:companies(*)').eq('id', id).is('deleted_at', null).single(),
       supabase.from('document_versions').select('*').eq('document_id', id).order('version_number', { ascending: false }),
       supabase.from('document_links').select('*').eq('document_id', id),
     ])
@@ -229,7 +229,7 @@ export function DocumentDetailPage() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="text-lg">バージョン履歴 ({versions.length}件)</CardTitle>
-              {editable && <Button size="sm" onClick={() => setUploadDialogOpen(true)}><Upload className="h-4 w-4 mr-1" />新バージョン</Button>}
+              {editable && <Button size="sm" onClick={() => { setSelectedFile(null); setUploadNotes(''); setUploadDialogOpen(true) }}><Upload className="h-4 w-4 mr-1" />新バージョン</Button>}
             </CardHeader>
             <CardContent className="p-0">
               <Table>

@@ -92,7 +92,7 @@ export function FileUploadPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title={`ファイル取込 (${files.length}件)`} description="ファイルをアップロードし、種別を選択してOCR/抽出確認フローに進みます" actionLabel={editable ? 'ファイルをアップロード' : undefined} onAction={editable ? () => setUploadDialogOpen(true) : undefined} />
+      <PageHeader title={`ファイル取込 (${files.length}件)`} description="ファイルをアップロードし、種別を選択してOCR/抽出確認フローに進みます" actionLabel={editable ? 'ファイルをアップロード' : undefined} onAction={editable ? () => { setSelectedFile(null); setNotes(''); setUploadDialogOpen(true) } : undefined} />
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card>
