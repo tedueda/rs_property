@@ -26,6 +26,7 @@ import { DocumentAlertsPage } from '@/app/document-alerts/DocumentAlertsPage'
 import { FileUploadPage } from '@/app/file-upload/FileUploadPage'
 import { ImportReviewPage } from '@/app/import-review/ImportReviewPage'
 import { ImportHistoryPage } from '@/app/import-history/ImportHistoryPage'
+import { MonthlyIncomeExpensePage } from '@/app/monthly-income-expense/MonthlyIncomeExpensePage'
 import { UsersSettingsPage } from '@/app/settings/UsersSettingsPage'
 import { NotFoundPage } from '@/app/NotFoundPage'
 
@@ -61,6 +62,7 @@ export default function App() {
           <Route path="file-upload" element={<FileUploadPage />} />
           <Route path="import-review" element={<ImportReviewPage />} />
           <Route path="import-history" element={<ImportHistoryPage />} />
+          <Route path="monthly-income-expense" element={<MonthlyIncomeExpensePage />} />
           <Route path="settings/users" element={<UsersSettingsPage />} />
         </Route>
         <Route path="*" element={<NotFoundPage />} />

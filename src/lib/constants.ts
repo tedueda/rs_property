@@ -107,6 +107,14 @@ export const EXTRACTION_TYPES = {
   receipt_invoice: { label: '領収書/請求書' },
   lease_contract: { label: '入居契約書' },
   loan_contract: { label: '借入契約書' },
+  rent_roll: { label: '家賃一覧' },
+  expense_receipt: { label: '経費/領収書' },
+  payroll_data: { label: '給与データ' },
+  property_info: { label: '物件情報' },
+  room_info: { label: '部屋情報' },
+  utility_bill: { label: '光熱費' },
+  tenant_list: { label: '入居者一覧' },
+  other: { label: 'その他' },
 } as const
 
 export const REVIEW_STATUSES = {

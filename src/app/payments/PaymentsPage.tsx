@@ -13,7 +13,8 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Pencil, Loader2, Link as LinkIcon } from 'lucide-react'
+import { Pencil, Loader2, Link as LinkIcon, Search, UserCheck } from 'lucide-react'
+import { findMatchCandidates, type MatchCandidate, MATCH_REASON_LABELS } from '@/lib/nameNormalizer'
 
 const DEMO_CHARGES: MonthlyCharge[] = [
   { id: '1', company_id: '1', property_id: '1', room_id: '1', tenant_id: '1', target_month: '2026-04', rent_amount: 65000, common_fee_amount: 5000, water_fee_amount: 2000, parking_fee_amount: 10000, other_amount: 0, billed_total: 82000, status: 'confirmed', created_at: '', updated_at: '' },
@@ -26,6 +27,15 @@ const DEMO_PAYMENTS: PaymentRecord[] = [
   { id: '2', payment_date: '2026-04-03', payer_name: '佐藤次郎', description: '4月分家賃', paid_amount: 80000, linked_charge_id: '2', difference_amount: -13000, status: 'partial', created_at: '', updated_at: '' },
   { id: '3', payment_date: '2026-04-07', payer_name: '不明入金', description: '振込人不明', paid_amount: 50000, status: 'unmatched', difference_amount: 0, created_at: '', updated_at: '' },
   { id: '4', payment_date: '2026-03-28', payer_name: '佐藤次郎', description: '3月分家賃（一部）', paid_amount: 50000, linked_charge_id: '4', difference_amount: -43000, status: 'arrears', created_at: '', updated_at: '' },
+]
+
+// Demo tenants for fuzzy matching
+const DEMO_TENANTS = [
+  { id: '1', full_name: '田中太郎', full_name_kana: 'タナカタロウ', tenant_name_normalized: 'タナカタロウ', aliases: ['タナカ タロウ', '田中 太郎'] },
+  { id: '2', full_name: '佐藤花子', full_name_kana: 'サトウハナコ', tenant_name_normalized: 'サトウハナコ', aliases: ['サトウ ハナコ'] },
+  { id: '3', full_name: '山田一郎', full_name_kana: 'ヤマダイチロウ', tenant_name_normalized: 'ヤマダイチロウ', aliases: [] },
+  { id: '4', full_name: '鈴木美月', full_name_kana: 'スズキミヅキ', tenant_name_normalized: 'スズキミヅキ', aliases: [] },
+  { id: '5', full_name: '佐藤次郎', full_name_kana: 'サトウジロウ', tenant_name_normalized: 'サトウジロウ', aliases: ['サトウ ジロウ'] },
 ]
 
 interface PaymentForm {
@@ -51,18 +61,33 @@ export function PaymentsPage() {
   const [saving, setSaving] = useState(false)
   const [filterStatus, setFilterStatus] = useState<string>('all')
   const [searchQuery, setSearchQuery] = useState('')
+  // Fuzzy matching state (改修9)
+  const [matchCandidates, setMatchCandidates] = useState<MatchCandidate[]>([])
+  const [matchDialogOpen, setMatchDialogOpen] = useState(false)
+  const [, setMatchingPayerId] = useState<string | null>(null)
+  const [tenants, setTenants] = useState(DEMO_TENANTS)
 
   const fetchData = useCallback(async () => {
     setLoading(true)
     if (isDemoMode) {
-      setPayments(DEMO_PAYMENTS); setCharges(DEMO_CHARGES)
+      setPayments(DEMO_PAYMENTS); setCharges(DEMO_CHARGES); setTenants(DEMO_TENANTS)
       setLoading(false); return
     }
-    const [{ data: pm }, { data: ch }] = await Promise.all([
+    const [{ data: pm }, { data: ch }, { data: tn }, { data: aliases }] = await Promise.all([
       supabase.from('payment_records').select('*').is('deleted_at', null).order('payment_date', { ascending: false }),
       supabase.from('monthly_charges').select('id, target_month, billed_total, tenant_id, room_id, status').is('deleted_at', null).in('status', ['confirmed', 'partial_paid', 'overdue']),
+      supabase.from('tenants').select('id, full_name, full_name_kana, tenant_name_normalized').is('deleted_at', null),
+      supabase.from('tenant_aliases').select('tenant_id, alias_name'),
     ])
     setPayments(pm || []); setCharges(ch || [])
+    // Build tenants with aliases for fuzzy matching
+    const aliasMap = new Map<string, string[]>()
+    for (const a of (aliases || [])) {
+      const list = aliasMap.get(a.tenant_id) || []
+      list.push(a.alias_name)
+      aliasMap.set(a.tenant_id, list)
+    }
+    setTenants((tn || []).map(t => ({ ...t, aliases: aliasMap.get(t.id) || [] })))
     setLoading(false)
   }, [])
 
@@ -88,6 +113,15 @@ export function PaymentsPage() {
     if (diff < 0) return 'partial'
     if (diff > 0) return 'overpaid'
     return 'needs_review'
+  }
+
+  // Fuzzy matching for payer name (改修9)
+  const runFuzzyMatch = (payerName: string, paymentId?: string) => {
+    if (!payerName.trim()) return
+    const candidates = findMatchCandidates(payerName, tenants)
+    setMatchCandidates(candidates)
+    setMatchingPayerId(paymentId || null)
+    if (candidates.length > 0) setMatchDialogOpen(true)
   }
 
   const openCreate = () => { setEditingId(null); setForm(emptyForm); setDialogOpen(true) }
@@ -206,7 +240,13 @@ export function PaymentsPage() {
             </div>
             <div className="space-y-2">
               <Label>支払者名 <span className="text-red-500">*</span></Label>
-              <Input value={form.payer_name} onChange={(e) => setForm({ ...form, payer_name: e.target.value })} placeholder="田中太郎" />
+              <div className="flex gap-2">
+                <Input value={form.payer_name} onChange={(e) => setForm({ ...form, payer_name: e.target.value })} placeholder="田中太郎" className="flex-1" />
+                <Button type="button" variant="outline" size="icon" onClick={() => runFuzzyMatch(form.payer_name)} title="入居者名義照合">
+                  <Search className="h-4 w-4" />
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">表記ゆれを考慮した入居者名義照合が可能です</p>
             </div>
             <div className="space-y-2">
               <Label>摘要</Label>
@@ -242,6 +282,46 @@ export function PaymentsPage() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)}>キャンセル</Button>
             <Button onClick={handleSave} disabled={saving || !form.payer_name.trim() || !form.payment_date}>{saving ? '保存中...' : '保存'}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      {/* Fuzzy Match Dialog (改修9) */}
+      <Dialog open={matchDialogOpen} onOpenChange={setMatchDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>入居者名義照合結果</DialogTitle>
+            <p className="text-sm text-muted-foreground">表記ゆれを考慮したマッチング候補です。最終確認はお客様が行います。</p>
+          </DialogHeader>
+          <div className="space-y-2">
+            {matchCandidates.length === 0 ? (
+              <p className="text-center py-4 text-muted-foreground">一致する候補が見つかりませんでした</p>
+            ) : matchCandidates.map((mc, idx) => (
+              <div key={idx} className={`border rounded-md p-3 ${mc.score >= 0.9 ? 'border-green-300 bg-green-50' : mc.score >= 0.7 ? 'border-yellow-300 bg-yellow-50' : 'border-gray-200'}`}>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="font-medium">{mc.tenantName}</span>
+                    {mc.tenantNameKana && <span className="text-xs text-muted-foreground ml-2">({mc.tenantNameKana})</span>}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className={`text-xs px-2 py-0.5 rounded ${mc.score >= 0.9 ? 'bg-green-100 text-green-800' : mc.score >= 0.7 ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-800'}`}>
+                      {Math.round(mc.score * 100)}%
+                    </span>
+                    <span className="text-xs text-muted-foreground">{MATCH_REASON_LABELS[mc.reason] || mc.reason}</span>
+                  </div>
+                </div>
+                <div className="mt-2 flex justify-end">
+                  <Button size="sm" variant="outline" onClick={() => {
+                    setForm(prev => ({ ...prev, payer_name: mc.tenantName }))
+                    setMatchDialogOpen(false)
+                  }}>
+                    <UserCheck className="h-3 w-3 mr-1" />選択
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setMatchDialogOpen(false)}>閉じる</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -1,226 +1,154 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { supabase, isDemoMode } from '@/lib/supabase/client'
-import { formatCurrency, formatDate, maskAccountNumber } from '@/lib/constants'
-import type { DashboardStats, CompanySummary, BankAccountBalance, RepaymentSchedule } from '@/types'
+import { formatCurrency, maskAccountNumber, ALLOWED_FILE_EXTENSIONS } from '@/lib/constants'
+import type { BankAccountBalance, RepaymentSchedule } from '@/types'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { Building2, Home, DoorOpen, Users, Banknote, AlertTriangle, Loader2, Landmark, Receipt, Wallet, CalendarClock, Send, TrendingDown, FileText, Upload, Clock } from 'lucide-react'
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts'
-
-const DEMO_STATS: DashboardStats = {
-  total_companies: 6,
-  total_properties: 12,
-  total_rooms: 85,
-  occupied_rooms: 68,
-  vacant_rooms: 17,
-  total_tenants: 68,
-  monthly_charges_count: 68,
-  monthly_charges_total: 5780000,
-  payments_count: 62,
-  payments_total: 5200000,
-  arrears_count: 8,
-  arrears_total: 580000,
-}
-
-const DEMO_COMPANY_SUMMARIES: CompanySummary[] = [
-  { company_id: '1', company_name: '林建設株式会社', properties_count: 4, rooms_count: 30, charges_count: 25, charges_total: 2100000, payments_count: 23, payments_total: 1900000, arrears_count: 3, arrears_total: 200000 },
-  { company_id: '2', company_name: 'N・Yコーポレーション株式会社', properties_count: 3, rooms_count: 20, charges_count: 16, charges_total: 1400000, payments_count: 15, payments_total: 1350000, arrears_count: 2, arrears_total: 50000 },
-  { company_id: '3', company_name: '株式会社オーナーズ', properties_count: 2, rooms_count: 15, charges_count: 12, charges_total: 980000, payments_count: 11, payments_total: 880000, arrears_count: 1, arrears_total: 100000 },
-  { company_id: '4', company_name: '株式会社照', properties_count: 2, rooms_count: 12, charges_count: 10, charges_total: 800000, payments_count: 9, payments_total: 720000, arrears_count: 1, arrears_total: 80000 },
-  { company_id: '5', company_name: '株式会社A', properties_count: 1, rooms_count: 5, charges_count: 3, charges_total: 300000, payments_count: 2, payments_total: 200000, arrears_count: 1, arrears_total: 100000 },
-  { company_id: '6', company_name: '株式会社B', properties_count: 0, rooms_count: 3, charges_count: 2, charges_total: 200000, payments_count: 2, payments_total: 150000, arrears_count: 0, arrears_total: 50000 },
-]
+import { Button } from '@/components/ui/button'
+import {
+  Loader2, Upload, Landmark, CalendarClock, TrendingDown, FileText,
+  Building2, Home, DoorOpen, Users, Banknote, CreditCard, AlertTriangle,
+  Receipt, Wallet, Send, FolderOpen, History, ClipboardCheck, Bell, UserCog,
+  ArrowLeftRight, BarChart3, Clock
+} from 'lucide-react'
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 
 const DEMO_BANK_BALANCES: BankAccountBalance[] = [
-  { account_id: '1', company_name: '林建設株式会社', bank_name: '三井住友銀行', branch_name: '大阪中央支店', account_number_masked: '****4567', current_balance: 15800000 },
-  { account_id: '2', company_name: '林建設株式会社', bank_name: 'りそな銀行', branch_name: '本町支店', account_number_masked: '****5678', current_balance: 8200000 },
-  { account_id: '3', company_name: 'N・Yコーポレーション', bank_name: '三菱UFJ銀行', branch_name: '梅田支店', account_number_masked: '****6789', current_balance: 12500000 },
-  { account_id: '4', company_name: '株式会社オーナーズ', bank_name: '関西みらい銀行', branch_name: '天王寺支店', account_number_masked: '****7890', current_balance: 3200000 },
-  { account_id: '5', company_name: '株式会社照', bank_name: '三井住友銀行', branch_name: '難波支店', account_number_masked: '****8901', current_balance: 6700000 },
-  { account_id: '6', company_name: '株式会社A', bank_name: '池田泉州銀行', branch_name: '堺支店', account_number_masked: '****9012', current_balance: 2100000 },
+  { account_id: '1', company_name: '\u6797\u5efa\u8a2d\u682a\u5f0f\u4f1a\u793e', bank_name: '\u4e09\u4e95\u4f4f\u53cb\u9280\u884c', branch_name: '\u5927\u962a\u4e2d\u592e\u652f\u5e97', account_number_masked: '****4567', current_balance: 15800000 },
+  { account_id: '2', company_name: '\u6797\u5efa\u8a2d\u682a\u5f0f\u4f1a\u793e', bank_name: '\u308a\u305d\u306a\u9280\u884c', branch_name: '\u672c\u753a\u652f\u5e97', account_number_masked: '****5678', current_balance: 8200000 },
+  { account_id: '3', company_name: 'N\u30fbY\u30b3\u30fc\u30dd\u30ec\u30fc\u30b7\u30e7\u30f3', bank_name: '\u4e09\u83f1UFJ\u9280\u884c', branch_name: '\u6885\u7530\u652f\u5e97', account_number_masked: '****6789', current_balance: 12500000 },
+  { account_id: '4', company_name: '\u682a\u5f0f\u4f1a\u793e\u30aa\u30fc\u30ca\u30fc\u30ba', bank_name: '\u95a2\u897f\u307f\u3089\u3044\u9280\u884c', branch_name: '\u5929\u738b\u5bfa\u652f\u5e97', account_number_masked: '****7890', current_balance: 3200000 },
+  { account_id: '5', company_name: '\u682a\u5f0f\u4f1a\u793e\u7167', bank_name: '\u4e09\u4e95\u4f4f\u53cb\u9280\u884c', branch_name: '\u96e3\u6ce2\u652f\u5e97', account_number_masked: '****8901', current_balance: 6700000 },
+  { account_id: '6', company_name: '\u682a\u5f0f\u4f1a\u793eA', bank_name: '\u6c60\u7530\u6cc9\u5dde\u9280\u884c', branch_name: '\u5832\u652f\u5e97', account_number_masked: '****9012', current_balance: 2100000 },
 ]
 
 const DEMO_REPAYMENT_SCHEDULE: RepaymentSchedule[] = [
-  { id: '1', company_name: '林建設株式会社', lender_name: '三井住友銀行', monthly_repayment_amount: 500000, withdrawal_day: 27, next_withdrawal_date: '2025-04-27', account_balance: 15800000, is_at_risk: false },
-  { id: '2', company_name: '林建設株式会社', lender_name: 'りそな銀行', monthly_repayment_amount: 350000, withdrawal_day: 25, next_withdrawal_date: '2025-04-25', account_balance: 8200000, is_at_risk: false },
-  { id: '3', company_name: 'N・Yコーポレーション', lender_name: '三菱UFJ銀行', monthly_repayment_amount: 800000, withdrawal_day: 10, next_withdrawal_date: '2025-05-10', account_balance: 12500000, is_at_risk: false },
-  { id: '4', company_name: '株式会社オーナーズ', lender_name: '日本政策金融公庫', monthly_repayment_amount: 200000, withdrawal_day: 15, next_withdrawal_date: '2025-04-15', account_balance: 3200000, is_at_risk: false },
-  { id: '5', company_name: '株式会社照', lender_name: '三井住友銀行', monthly_repayment_amount: 450000, withdrawal_day: 27, next_withdrawal_date: '2025-04-27', account_balance: 6700000, is_at_risk: false },
+  { id: '1', company_name: '\u6797\u5efa\u8a2d\u682a\u5f0f\u4f1a\u793e', lender_name: '\u4e09\u4e95\u4f4f\u53cb\u9280\u884c', monthly_repayment_amount: 500000, withdrawal_day: 27, next_withdrawal_date: '2026-04-27', account_balance: 15800000, is_at_risk: false },
+  { id: '2', company_name: '\u6797\u5efa\u8a2d\u682a\u5f0f\u4f1a\u793e', lender_name: '\u308a\u305d\u306a\u9280\u884c', monthly_repayment_amount: 350000, withdrawal_day: 25, next_withdrawal_date: '2026-04-25', account_balance: 8200000, is_at_risk: false },
+  { id: '3', company_name: 'N\u30fbY\u30b3\u30fc\u30dd\u30ec\u30fc\u30b7\u30e7\u30f3', lender_name: '\u4e09\u83f1UFJ\u9280\u884c', monthly_repayment_amount: 800000, withdrawal_day: 10, next_withdrawal_date: '2026-05-10', account_balance: 12500000, is_at_risk: false },
+  { id: '4', company_name: '\u682a\u5f0f\u4f1a\u793e\u30aa\u30fc\u30ca\u30fc\u30ba', lender_name: '\u65e5\u672c\u653f\u7b56\u91d1\u878d\u516c\u5eab', monthly_repayment_amount: 200000, withdrawal_day: 15, next_withdrawal_date: '2026-04-15', account_balance: 3200000, is_at_risk: false },
+  { id: '5', company_name: '\u682a\u5f0f\u4f1a\u793e\u7167', lender_name: '\u4e09\u4e95\u4f4f\u53cb\u9280\u884c', monthly_repayment_amount: 450000, withdrawal_day: 27, next_withdrawal_date: '2026-04-27', account_balance: 6700000, is_at_risk: false },
 ]
-
-const DEMO_EXPENSE_TOTAL = 637500
-const DEMO_PAYROLL_TOTAL = 1377000
-
-interface ExpiringContract {
-  id: string
-  title: string
-  company_name: string
-  contract_end_date: string
-  days_remaining: number
-}
-
-interface RecentUpload {
-  id: string
-  file_name: string
-  created_at: string
-  status: string
-}
 
 const daysUntilDate = (dateStr: string) => Math.ceil((new Date(dateStr).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
 
+interface ExpiringContract { id: string; title: string; company_name: string; contract_end_date: string; days_remaining: number }
+interface RecentUpload { id: string; file_name: string; created_at: string; status: string }
+
 const DEMO_EXPIRING_CONTRACTS: ExpiringContract[] = [
-  { id: '3', title: 'NYコーポ 保証会社契約', company_name: 'N・Yコーポレーション株式会社', contract_end_date: '2025-05-31', days_remaining: daysUntilDate('2025-05-31') },
-  { id: '1', title: '林建設 賃貸借契約書 101号室', company_name: '林建設株式会社', contract_end_date: '2026-03-31', days_remaining: daysUntilDate('2026-03-31') },
-  { id: '4', title: 'オーナーズ 事務所賃貸契約', company_name: '株式会社オーナーズ', contract_end_date: '2026-12-31', days_remaining: daysUntilDate('2026-12-31') },
+  { id: '3', title: 'NY\u30b3\u30fc\u30dd \u4fdd\u8a3c\u4f1a\u793e\u5951\u7d04', company_name: 'N\u30fbY\u30b3\u30fc\u30dd\u30ec\u30fc\u30b7\u30e7\u30f3\u682a\u5f0f\u4f1a\u793e', contract_end_date: '2026-05-31', days_remaining: daysUntilDate('2026-05-31') },
+  { id: '1', title: '\u6797\u5efa\u8a2d \u8cc3\u8cb8\u501f\u5951\u7d04\u66f8 101\u53f7\u5ba4', company_name: '\u6797\u5efa\u8a2d\u682a\u5f0f\u4f1a\u793e', contract_end_date: '2026-08-31', days_remaining: daysUntilDate('2026-08-31') },
+  { id: '4', title: '\u30aa\u30fc\u30ca\u30fc\u30ba \u4e8b\u52d9\u6240\u8cc3\u8cb8\u5951\u7d04', company_name: '\u682a\u5f0f\u4f1a\u793e\u30aa\u30fc\u30ca\u30fc\u30ba', contract_end_date: '2027-03-31', days_remaining: daysUntilDate('2027-03-31') },
 ]
 
 const DEMO_RECENT_UPLOADS: RecentUpload[] = [
-  { id: '1', file_name: '通帳_林建設_202503.pdf', created_at: '2025-03-25', status: 'confirmed' },
-  { id: '2', file_name: '領収書_修繕工事.jpg', created_at: '2025-03-20', status: 'review_pending' },
-  { id: '3', file_name: '入居契約書_佐藤.pdf', created_at: '2025-03-18', status: 'extracted' },
+  { id: '1', file_name: '\u901a\u5e33_\u6797\u5efa\u8a2d_202604.pdf', created_at: '2026-04-08', status: 'confirmed' },
+  { id: '2', file_name: '\u9818\u53ce\u66f8_\u4fee\u7e55\u5de5\u4e8b.jpg', created_at: '2026-04-06', status: 'review_pending' },
+  { id: '3', file_name: '\u5165\u5c45\u5951\u7d04\u66f8_\u4f50\u85e4.pdf', created_at: '2026-04-04', status: 'extracted' },
 ]
 
-const DEMO_PENDING_IMPORTS = 2
-
-interface RecentTransfer {
-  id: string
-  transfer_date: string
-  from_label: string
-  to_label: string
-  amount: number
-  reason: string
+const UPLOAD_STATUS_LABELS: Record<string, string> = {
+  uploaded: '\u53d6\u8fbc\u6e08', processing: '\u51e6\u7406\u4e2d', extracted: '\u62bd\u51fa\u6e08',
+  review_pending: '\u78ba\u8a8d\u5f85\u3061', confirmed: '\u78ba\u5b9a\u6e08', error: '\u30a8\u30e9\u30fc',
 }
 
-const DEMO_RECENT_TRANSFERS: RecentTransfer[] = [
-  { id: '1', transfer_date: '2025-04-15', from_label: '三井住友 ****4567', to_label: 'りそな ****5678', amount: 2000000, reason: '返済資金の移動' },
-  { id: '2', transfer_date: '2025-04-10', from_label: '三菱UFJ ****6789', to_label: '関西みらい ****7890', amount: 500000, reason: '経費支払準備' },
-  { id: '3', transfer_date: '2025-04-05', from_label: '三井住友 ****4567', to_label: '三井住友 ****8901', amount: 3000000, reason: '工事費用振替' },
+interface PanelItem {
+  label: string
+  icon: React.ComponentType<{ className?: string }>
+  path: string
+  description: string
+}
+
+const PANEL_ITEMS: PanelItem[] = [
+  { label: '\u5bb6\u8cc3\u8acb\u6c42\u7ba1\u7406', icon: Banknote, path: '/charges', description: '\u6708\u6b21\u8acb\u6c42\u306e\u7ba1\u7406' },
+  { label: '\u5165\u91d1\u7ba1\u7406', icon: CreditCard, path: '/payments', description: '\u5165\u91d1\u7167\u5408\u30fb\u7ba1\u7406' },
+  { label: '\u672a\u53ce\u30fb\u6ede\u7d0d\u7ba1\u7406', icon: AlertTriangle, path: '/arrears-mgmt', description: '\u672a\u53ce\u91d1\u306e\u8ffd\u8de1' },
+  { label: '\u7d4c\u8cbb\u7ba1\u7406', icon: Receipt, path: '/expenses', description: '\u7d4c\u8cbb\u306e\u8a18\u9332\u30fb\u7ba1\u7406' },
+  { label: '\u7d66\u4e0e\u7ba1\u7406', icon: Wallet, path: '/payroll', description: '\u7d66\u4e0e\u8a08\u7b97\u30fb\u652f\u6255\u3044' },
+  { label: '\u8fd4\u6e08\u7ba1\u7406', icon: CalendarClock, path: '/loan-repayments', description: '\u501f\u5165\u8fd4\u6e08\u4e88\u5b9a' },
+  { label: '\u9280\u884c\u53d6\u5f15', icon: ArrowLeftRight, path: '/bank-transactions', description: '\u5165\u51fa\u91d1\u660e\u7d30' },
+  { label: '\u8cc7\u91d1\u79fb\u52d5', icon: Send, path: '/fund-transfers', description: '\u53e3\u5ea7\u9593\u306e\u632f\u66ff' },
+  { label: '\u66f8\u985e\u7ba1\u7406', icon: FileText, path: '/documents', description: '\u5951\u7d04\u66f8\u30fb\u66f8\u985e' },
+  { label: '\u66f4\u65b0\u671f\u9650', icon: Bell, path: '/document-alerts', description: '\u671f\u9650\u30a2\u30e9\u30fc\u30c8' },
+  { label: '\u53d6\u8fbc\u78ba\u8a8d', icon: ClipboardCheck, path: '/import-review', description: '\u53d6\u8fbc\u30c7\u30fc\u30bf\u78ba\u8a8d' },
+  { label: '\u53d6\u8fbc\u5c65\u6b74', icon: History, path: '/import-history', description: '\u904e\u53bb\u306e\u53d6\u8fbc\u8a18\u9332' },
+  { label: '\u6708\u6b21\u53ce\u652f', icon: BarChart3, path: '/monthly-income-expense', description: '\u6708\u6b21P&L' },
+  { label: '\u4f1a\u793e\u7ba1\u7406', icon: Building2, path: '/companies', description: '\u30de\u30b9\u30bf\u7ba1\u7406' },
+  { label: '\u7269\u4ef6\u7ba1\u7406', icon: Home, path: '/properties-mgmt', description: '\u7269\u4ef6\u60c5\u5831' },
+  { label: '\u90e8\u5c4b\u7ba1\u7406', icon: DoorOpen, path: '/rooms', description: '\u90e8\u5c4b\u60c5\u5831' },
+  { label: '\u5165\u5c45\u8005\u7ba1\u7406', icon: Users, path: '/tenants-mgmt', description: '\u5165\u5c45\u8005\u60c5\u5831' },
+  { label: '\u5f93\u696d\u54e1\u7ba1\u7406', icon: UserCog, path: '/employees', description: '\u5f93\u696d\u54e1\u30de\u30b9\u30bf' },
+  { label: '\u9280\u884c\u53e3\u5ea7', icon: Landmark, path: '/bank-accounts', description: '\u53e3\u5ea7\u30de\u30b9\u30bf' },
+  { label: '\u7d4c\u8cbb\u30ab\u30c6\u30b4\u30ea', icon: FolderOpen, path: '/expense-categories', description: '\u30ab\u30c6\u30b4\u30ea\u7ba1\u7406' },
+  { label: '\u66f8\u985e\u30ab\u30c6\u30b4\u30ea', icon: FolderOpen, path: '/document-categories', description: '\u30ab\u30c6\u30b4\u30ea\u7ba1\u7406' },
 ]
 
-interface StatCardProps {
-  title: string
-  value: string | number
-  icon: React.ReactNode
-  description?: string
-  variant?: 'default' | 'danger' | 'success'
-}
-
-function StatCard({ title, value, icon, description, variant = 'default' }: StatCardProps) {
-  const colorClass = variant === 'danger' ? 'text-red-600' : variant === 'success' ? 'text-green-600' : 'text-blue-600'
+function StatCard({ title, value, icon, description, variant }: { title: string; value: string; icon: React.ReactNode; description?: string; variant?: 'danger' }) {
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between pb-2">
-        <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
-        <div className={colorClass}>{icon}</div>
-      </CardHeader>
-      <CardContent>
-        <div className={`text-2xl font-bold ${colorClass}`}>{value}</div>
-        {description && <p className="text-xs text-muted-foreground mt-1">{description}</p>}
+    <Card className={variant === 'danger' ? 'border-red-200' : ''}>
+      <CardContent className="pt-4 pb-3 px-4">
+        <div className="flex items-center gap-2 text-muted-foreground mb-1">{icon}<span className="text-xs">{title}</span></div>
+        <p className={`text-lg font-bold ${variant === 'danger' ? 'text-red-600' : ''}`}>{value}</p>
+        {description && <p className="text-xs text-muted-foreground mt-0.5">{description}</p>}
       </CardContent>
     </Card>
   )
 }
 
 export function DashboardPage() {
-  const [stats, setStats] = useState<DashboardStats | null>(null)
-  const [companySummaries, setCompanySummaries] = useState<CompanySummary[]>([])
+  const navigate = useNavigate()
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [loading, setLoading] = useState(true)
+  const [isDragging, setIsDragging] = useState(false)
+
   const [bankBalances, setBankBalances] = useState<BankAccountBalance[]>([])
   const [repaymentSchedule, setRepaymentSchedule] = useState<RepaymentSchedule[]>([])
+  const [arrearsCount, setArrearsCount] = useState(0)
+  const [arrearsTotal, setArrearsTotal] = useState(0)
   const [expenseTotal, setExpenseTotal] = useState(0)
   const [payrollTotal, setPayrollTotal] = useState(0)
-  const [recentTransfers, setRecentTransfers] = useState<RecentTransfer[]>([])
   const [expiringContracts, setExpiringContracts] = useState<ExpiringContract[]>([])
   const [recentUploads, setRecentUploads] = useState<RecentUpload[]>([])
   const [pendingImports, setPendingImports] = useState(0)
-  const [loading, setLoading] = useState(true)
 
   const fetchData = useCallback(async () => {
     setLoading(true)
     if (isDemoMode) {
-      setStats(DEMO_STATS)
-      setCompanySummaries(DEMO_COMPANY_SUMMARIES)
       setBankBalances(DEMO_BANK_BALANCES)
       setRepaymentSchedule(DEMO_REPAYMENT_SCHEDULE)
-      setExpenseTotal(DEMO_EXPENSE_TOTAL)
-      setPayrollTotal(DEMO_PAYROLL_TOTAL)
-      setRecentTransfers(DEMO_RECENT_TRANSFERS)
+      setArrearsCount(8)
+      setArrearsTotal(580000)
+      setExpenseTotal(637500)
+      setPayrollTotal(1377000)
       setExpiringContracts(DEMO_EXPIRING_CONTRACTS)
       setRecentUploads(DEMO_RECENT_UPLOADS)
-      setPendingImports(DEMO_PENDING_IMPORTS)
+      setPendingImports(2)
       setLoading(false)
       return
     }
     try {
       const [
-        { count: companiesCount },
-        { count: propertiesCount },
-        { count: roomsCount },
-        { count: occupiedCount },
-        { count: tenantsCount },
-        { data: charges },
-        { data: payments },
-        { data: arrearsData },
         { data: companiesData },
+        { data: arrearsData },
+        { data: bankAccts },
+        { data: loans },
+        { data: expenses },
+        { data: payrolls },
       ] = await Promise.all([
-        supabase.from('companies').select('*', { count: 'exact', head: true }).is('deleted_at', null),
-        supabase.from('properties').select('*', { count: 'exact', head: true }).is('deleted_at', null),
-        supabase.from('rooms').select('*', { count: 'exact', head: true }).is('deleted_at', null),
-        supabase.from('rooms').select('*', { count: 'exact', head: true }).is('deleted_at', null).eq('status', 'occupied'),
-        supabase.from('tenants').select('*', { count: 'exact', head: true }).is('deleted_at', null),
-        supabase.from('monthly_charges').select('billed_total, company_id').is('deleted_at', null),
-        supabase.from('payment_records').select('paid_amount').is('deleted_at', null),
-        supabase.from('arrears_records').select('arrears_amount, company_id').is('deleted_at', null).in('status', ['outstanding', 'partially_paid']),
         supabase.from('companies').select('id, name').is('deleted_at', null),
-      ])
-
-      const chargesTotal = (charges || []).reduce((sum: number, c: Record<string, number>) => sum + Number(c.billed_total), 0)
-      const paymentsTotal = (payments || []).reduce((sum: number, p: Record<string, number>) => sum + Number(p.paid_amount), 0)
-      const arrearsTotal = (arrearsData || []).reduce((sum: number, a: Record<string, number>) => sum + Number(a.arrears_amount), 0)
-
-      setStats({
-        total_companies: companiesCount || 0,
-        total_properties: propertiesCount || 0,
-        total_rooms: roomsCount || 0,
-        occupied_rooms: occupiedCount || 0,
-        vacant_rooms: (roomsCount || 0) - (occupiedCount || 0),
-        total_tenants: tenantsCount || 0,
-        monthly_charges_count: (charges || []).length,
-        monthly_charges_total: chargesTotal,
-        payments_count: (payments || []).length,
-        payments_total: paymentsTotal,
-        arrears_count: (arrearsData || []).length,
-        arrears_total: arrearsTotal,
-      })
-
-      const summaries: CompanySummary[] = (companiesData || []).map((company: Record<string, string>) => {
-        const companyCharges = (charges || []).filter((c: Record<string, string>) => c.company_id === company.id)
-        const companyArrears = (arrearsData || []).filter((a: Record<string, string>) => a.company_id === company.id)
-        return {
-          company_id: company.id,
-          company_name: company.name,
-          properties_count: 0,
-          rooms_count: 0,
-          charges_count: companyCharges.length,
-          charges_total: companyCharges.reduce((s: number, c: Record<string, number>) => s + Number(c.billed_total), 0),
-          payments_count: 0,
-          payments_total: 0,
-          arrears_count: companyArrears.length,
-          arrears_total: companyArrears.reduce((s: number, a: Record<string, number>) => s + Number(a.arrears_amount), 0),
-        }
-      })
-      setCompanySummaries(summaries)
-
-      // Phase 2 data
-      const [{ data: bankAccts }, { data: loans }, { data: expenses }, { data: payrolls }, { data: transfers }] = await Promise.all([
+        supabase.from('arrears_records').select('arrears_amount').is('deleted_at', null).in('status', ['outstanding', 'partially_paid']),
         supabase.from('bank_accounts').select('id, company_id, bank_name, branch_name, account_number, current_balance').is('deleted_at', null),
-        supabase.from('loan_repayments').select('id, company_id, bank_account_id, lender_name, monthly_repayment_amount, withdrawal_day, next_withdrawal_date, status').is('deleted_at', null),
+        supabase.from('loan_repayments').select('id, company_id, bank_account_id, lender_name, monthly_repayment_amount, withdrawal_day, next_withdrawal_date').is('deleted_at', null).eq('status', 'scheduled'),
         supabase.from('expense_records').select('amount').is('deleted_at', null),
         supabase.from('payroll_records').select('net_payment').is('deleted_at', null),
-        supabase.from('fund_transfer_records').select('id, transfer_date, from_account_id, to_account_id, amount, reason').is('deleted_at', null).order('transfer_date', { ascending: false }).limit(5),
       ])
 
       const companyMap = Object.fromEntries((companiesData || []).map((c: Record<string, string>) => [c.id, c.name]))
       const accountMap = Object.fromEntries((bankAccts || []).map((a: Record<string, string | number>) => [a.id, a]))
+
+      setArrearsCount((arrearsData || []).length)
+      setArrearsTotal((arrearsData || []).reduce((s: number, a: Record<string, number>) => s + Number(a.arrears_amount), 0))
 
       setBankBalances((bankAccts || []).map((a: Record<string, string | number>) => ({
         account_id: String(a.id), company_name: companyMap[a.company_id as string] || '',
@@ -229,7 +157,7 @@ export function DashboardPage() {
       })))
 
       setRepaymentSchedule((loans || []).map((l: Record<string, string | number>) => {
-        const acctBalance = accountMap[l.bank_account_id as string]?.current_balance as number || 0
+        const acctBalance = Number((accountMap[l.bank_account_id as string] as Record<string, number>)?.current_balance) || 0
         return {
           id: String(l.id), company_name: companyMap[l.company_id as string] || '',
           lender_name: String(l.lender_name), monthly_repayment_amount: Number(l.monthly_repayment_amount),
@@ -241,18 +169,6 @@ export function DashboardPage() {
       setExpenseTotal((expenses || []).reduce((s: number, e: Record<string, number>) => s + Number(e.amount), 0))
       setPayrollTotal((payrolls || []).reduce((s: number, p: Record<string, number>) => s + Number(p.net_payment), 0))
 
-      setRecentTransfers((transfers || []).map((t: Record<string, string | number>) => {
-        const fromAcct = accountMap[t.from_account_id as string]
-        const toAcct = accountMap[t.to_account_id as string]
-        return {
-          id: String(t.id), transfer_date: String(t.transfer_date),
-          from_label: fromAcct ? `${fromAcct.bank_name} ${maskAccountNumber(String(fromAcct.account_number))}` : '',
-          to_label: toAcct ? `${toAcct.bank_name} ${maskAccountNumber(String(toAcct.account_number))}` : '',
-          amount: Number(t.amount), reason: String(t.reason || ''),
-        }
-      }))
-
-      // Phase 3 data
       const [{ data: expiringDocs }, { data: recentFiles }, { count: pendingCount }] = await Promise.all([
         supabase.from('documents').select('id, title, company_id, contract_end_date').is('deleted_at', null).not('contract_end_date', 'is', null).order('contract_end_date', { ascending: true }).limit(5),
         supabase.from('uploaded_files').select('id, file_name, created_at, status').order('created_at', { ascending: false }).limit(5),
@@ -263,18 +179,9 @@ export function DashboardPage() {
       setExpiringContracts((expiringDocs || []).map((d: Record<string, string>) => {
         const endDate = new Date(d.contract_end_date)
         const daysRemaining = Math.ceil((endDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
-        return {
-          id: d.id, title: d.title,
-          company_name: companyMap[d.company_id] || '',
-          contract_end_date: d.contract_end_date,
-          days_remaining: daysRemaining,
-        }
+        return { id: d.id, title: d.title, company_name: companyMap[d.company_id] || '', contract_end_date: d.contract_end_date, days_remaining: daysRemaining }
       }))
-
-      setRecentUploads((recentFiles || []).map((f: Record<string, string>) => ({
-        id: f.id, file_name: f.file_name, created_at: f.created_at, status: f.status,
-      })))
-
+      setRecentUploads((recentFiles || []).map((f: Record<string, string>) => ({ id: f.id, file_name: f.file_name, created_at: f.created_at, status: f.status })))
       setPendingImports(pendingCount || 0)
     } catch (err) {
       console.error('Dashboard fetch error:', err)
@@ -284,17 +191,28 @@ export function DashboardPage() {
 
   useEffect(() => { fetchData() }, [fetchData])
 
+  const handleDragOver = (e: React.DragEvent) => { e.preventDefault(); setIsDragging(true) }
+  const handleDragLeave = () => setIsDragging(false)
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault(); setIsDragging(false)
+    if (e.dataTransfer.files.length > 0) navigate('/file-upload', { state: { droppedFiles: Array.from(e.dataTransfer.files) } })
+  }
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) navigate('/file-upload', { state: { droppedFiles: Array.from(e.target.files) } })
+  }
+
+  const chartData = Object.values(
+    bankBalances.reduce<Record<string, { name: string; balance: number }>>((acc, b) => {
+      const name = b.company_name.replace('\u682a\u5f0f\u4f1a\u793e', '(\u682a)').substring(0, 12)
+      if (!acc[b.company_name]) acc[b.company_name] = { name, balance: 0 }
+      acc[b.company_name].balance += b.current_balance
+      return acc
+    }, {})
+  )
+
   if (loading) {
     return <div className="flex justify-center py-24"><Loader2 className="h-8 w-8 animate-spin text-gray-400" /></div>
   }
-
-  if (!stats) return null
-
-  const chartData = companySummaries.map(c => ({
-    name: c.company_name.replace('\u682a\u5f0f\u4f1a\u793e', '(\u682a)').substring(0, 10),
-    '\u8acb\u6c42\u984d': c.charges_total,
-    '\u672a\u53ce\u984d': c.arrears_total,
-  }))
 
   return (
     <div className="space-y-6">
@@ -303,239 +221,140 @@ export function DashboardPage() {
         <p className="text-muted-foreground mt-1">{'\u30b0\u30eb\u30fc\u30d7\u5168\u4f53\u306e\u8cc7\u91d1\u7ba1\u7406\u30b5\u30de\u30ea\u30fc'}</p>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
-        <StatCard title={'\u7ba1\u7406\u4f1a\u793e'} value={`${stats.total_companies}\u793e`} icon={<Building2 className="h-5 w-5" />} />
-        <StatCard title={'\u7ba1\u7406\u7269\u4ef6'} value={`${stats.total_properties}\u4ef6`} icon={<Home className="h-5 w-5" />} />
-        <StatCard title={'\u90e8\u5c4b\u6570'} value={`${stats.total_rooms}\u5ba4`} icon={<DoorOpen className="h-5 w-5" />} description={`\u5165\u5c45${stats.occupied_rooms} / \u7a7a\u5ba4${stats.vacant_rooms}`} />
-        <StatCard title={'\u5165\u5c45\u8005'} value={`${stats.total_tenants}\u540d`} icon={<Users className="h-5 w-5" />} />
-        <StatCard title={'\u6708\u6b21\u8acb\u6c42'} value={formatCurrency(stats.monthly_charges_total)} icon={<Banknote className="h-5 w-5" />} description={`${stats.monthly_charges_count}\u4ef6`} />
-        <StatCard title={'\u672a\u53ce\u7dcf\u984d'} value={formatCurrency(stats.arrears_total)} icon={<AlertTriangle className="h-5 w-5" />} description={`${stats.arrears_count}\u4ef6`} variant="danger" />
+      {/* Section 1: File Import Area */}
+      <Card className={`border-2 border-dashed transition-colors ${isDragging ? 'border-blue-500 bg-blue-50' : 'border-gray-300 hover:border-blue-400'}`}>
+        <CardContent className="py-8">
+          <div
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+            className="flex flex-col items-center gap-3 cursor-pointer"
+            onClick={() => fileInputRef.current?.click()}
+          >
+            <Upload className={`h-12 w-12 ${isDragging ? 'text-blue-500' : 'text-gray-400'}`} />
+            <div className="text-center">
+              <p className="text-lg font-semibold">{isDragging ? '\u30d5\u30a1\u30a4\u30eb\u3092\u30c9\u30ed\u30c3\u30d7\u3057\u3066\u304f\u3060\u3055\u3044' : '\u30d5\u30a1\u30a4\u30eb\u53d6\u8fbc'}</p>
+              <p className="text-sm text-muted-foreground mt-1">{'\u30c9\u30e9\u30c3\u30b0&\u30c9\u30ed\u30c3\u30d7 \u307e\u305f\u306f \u30af\u30ea\u30c3\u30af\u3057\u3066\u30d5\u30a1\u30a4\u30eb\u3092\u9078\u629e'}</p>
+              <p className="text-xs text-muted-foreground mt-1">{'\u5bfe\u5fdc\u5f62\u5f0f: JPG, PNG, HEIF, PDF, Excel, Word'}</p>
+            </div>
+            <input ref={fileInputRef} type="file" className="hidden" accept={ALLOWED_FILE_EXTENSIONS} multiple onChange={handleFileSelect} />
+            <div className="flex gap-2 mt-2">
+              <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); navigate('/file-upload') }}>
+                <Upload className="h-4 w-4 mr-1" />{'\u30d5\u30a1\u30a4\u30eb\u53d6\u8fbc\u753b\u9762\u3078'}
+              </Button>
+              <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); navigate('/import-history') }}>
+                <History className="h-4 w-4 mr-1" />{'\u53d6\u8fbc\u5c65\u6b74'}
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Section 2: Important KPIs */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+        <StatCard title={'\u9280\u884c\u7dcf\u6b8b\u9ad8'} value={formatCurrency(bankBalances.reduce((s, b) => s + b.current_balance, 0))} icon={<Landmark className="h-4 w-4" />} />
+        <StatCard title={'\u6708\u6b21\u8fd4\u6e08\u7dcf\u984d'} value={formatCurrency(repaymentSchedule.reduce((s, r) => s + r.monthly_repayment_amount, 0))} icon={<CalendarClock className="h-4 w-4" />} variant="danger" />
+        <StatCard title={'\u672a\u53ce\u7dcf\u984d'} value={formatCurrency(arrearsTotal)} icon={<AlertTriangle className="h-4 w-4" />} description={`${arrearsCount}\u4ef6`} variant="danger" />
+        <StatCard title={'\u78ba\u8a8d\u5f85\u3061\u53d6\u8fbc'} value={`${pendingImports}\u4ef6`} icon={<ClipboardCheck className="h-4 w-4" />} />
+        <StatCard title={'\u7d4c\u8cbb+\u7d66\u4e0e'} value={formatCurrency(expenseTotal + payrollTotal)} icon={<Receipt className="h-4 w-4" />} />
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <StatCard title={'口座残高合計'} value={formatCurrency(bankBalances.reduce((s, b) => s + b.current_balance, 0))} icon={<Landmark className="h-5 w-5" />} />
-        <StatCard title={'月次経費総額'} value={formatCurrency(expenseTotal)} icon={<Receipt className="h-5 w-5" />} />
-        <StatCard title={'月次給与総額'} value={formatCurrency(payrollTotal)} icon={<Wallet className="h-5 w-5" />} />
-        <StatCard title={'月次返済総額'} value={formatCurrency(repaymentSchedule.reduce((s, r) => s + r.monthly_repayment_amount, 0))} icon={<CalendarClock className="h-5 w-5" />} variant="danger" />
-      </div>
-
-
+      {/* Bank Balances + Chart */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
-          <CardHeader>
-            <CardTitle className="text-base">{'\u5165\u91d1\u72b6\u6cc1\u30b5\u30de\u30ea\u30fc'}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-muted-foreground">{'\u6708\u6b21\u8acb\u6c42\u7dcf\u984d'}</span>
-                <span className="font-mono font-medium">{formatCurrency(stats.monthly_charges_total)}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-muted-foreground">{'\u5165\u91d1\u7dcf\u984d'}</span>
-                <span className="font-mono font-medium text-green-600">{formatCurrency(stats.payments_total)}</span>
-              </div>
-              <div className="border-t pt-2 flex justify-between items-center">
-                <span className="text-sm font-medium">{'\u5dee\u984d\uff08\u672a\u56de\u53ce\uff09'}</span>
-                <span className="font-mono font-bold text-red-600">{formatCurrency(stats.monthly_charges_total - stats.payments_total)}</span>
-              </div>
-              <div className="w-full bg-gray-200 rounded-full h-3">
-                <div
-                  className="bg-green-500 h-3 rounded-full transition-all"
-                  style={{ width: `${stats.monthly_charges_total > 0 ? Math.min(100, (stats.payments_total / stats.monthly_charges_total) * 100) : 0}%` }}
-                />
-              </div>
-              <p className="text-xs text-muted-foreground text-right">
-                {'\u56de\u53ce\u7387'}: {stats.monthly_charges_total > 0 ? ((stats.payments_total / stats.monthly_charges_total) * 100).toFixed(1) : 0}%
-              </p>
+          <CardHeader><CardTitle className="text-base flex items-center gap-2"><Landmark className="h-4 w-4" />{'\u4f1a\u793e\u5225\u9280\u884c\u53e3\u5ea7\u6b8b\u9ad8'}</CardTitle></CardHeader>
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>{'\u4f1a\u793e\u540d'}</TableHead>
+                    <TableHead>{'\u9280\u884c\u540d'}</TableHead>
+                    <TableHead>{'\u53e3\u5ea7\u756a\u53f7'}</TableHead>
+                    <TableHead className="text-right">{'\u6b8b\u9ad8'}</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {bankBalances.map((b) => (
+                    <TableRow key={b.account_id}>
+                      <TableCell className="text-sm">{b.company_name}</TableCell>
+                      <TableCell className="font-medium text-sm">{b.bank_name}</TableCell>
+                      <TableCell className="font-mono text-sm">{b.account_number_masked}</TableCell>
+                      <TableCell className="text-right font-mono font-medium">{formatCurrency(b.current_balance)}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader>
-            <CardTitle className="text-base">{'\u4f1a\u793e\u5225 \u8acb\u6c42\u30fb\u672a\u53ce'}</CardTitle>
-          </CardHeader>
+          <CardHeader><CardTitle className="text-base">{'\u4f1a\u793e\u5225\u6b8b\u9ad8\u6bd4\u8f03'}</CardTitle></CardHeader>
           <CardContent>
             {chartData.length > 0 ? (
               <ResponsiveContainer width="100%" height={250}>
                 <BarChart data={chartData}>
                   <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+                  <XAxis dataKey="name" tick={{ fontSize: 10 }} />
                   <YAxis tick={{ fontSize: 11 }} tickFormatter={(v: number) => `${(v / 10000).toFixed(0)}\u4e07`} />
                   <Tooltip formatter={(value: number) => formatCurrency(value)} />
                   <Legend />
-                  <Bar dataKey={'\u8acb\u6c42\u984d'} fill="#3b82f6" radius={[2, 2, 0, 0]} />
-                  <Bar dataKey={'\u672a\u53ce\u984d'} fill="#ef4444" radius={[2, 2, 0, 0]} />
+                  <Bar dataKey="balance" name={'\u6b8b\u9ad8'} fill="#3b82f6" radius={[2, 2, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
-            ) : (
-              <p className="text-center text-muted-foreground py-8">{'\u30c7\u30fc\u30bf\u304c\u3042\u308a\u307e\u305b\u3093'}</p>
-            )}
+            ) : <p className="text-center text-muted-foreground py-8">{'\u30c7\u30fc\u30bf\u304c\u3042\u308a\u307e\u305b\u3093'}</p>}
           </CardContent>
         </Card>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">{'\u4f1a\u793e\u5225\u30b5\u30de\u30ea\u30fc'}</CardTitle>
-        </CardHeader>
-        <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>{'\u4f1a\u793e\u540d'}</TableHead>
-                  <TableHead className="text-right">{'\u7269\u4ef6\u6570'}</TableHead>
-                  <TableHead className="text-right">{'\u90e8\u5c4b\u6570'}</TableHead>
-                  <TableHead className="text-right">{'\u8acb\u6c42\u4ef6\u6570'}</TableHead>
-                  <TableHead className="text-right">{'\u8acb\u6c42\u7dcf\u984d'}</TableHead>
-                  <TableHead className="text-right">{'\u672a\u53ce\u4ef6\u6570'}</TableHead>
-                  <TableHead className="text-right">{'\u672a\u53ce\u7dcf\u984d'}</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {companySummaries.map((cs) => (
-                  <TableRow key={cs.company_id}>
-                    <TableCell className="font-medium">{cs.company_name}</TableCell>
-                    <TableCell className="text-right">{cs.properties_count}</TableCell>
-                    <TableCell className="text-right">{cs.rooms_count}</TableCell>
-                    <TableCell className="text-right">{cs.charges_count}</TableCell>
-                    <TableCell className="text-right font-mono text-sm">{formatCurrency(cs.charges_total)}</TableCell>
-                    <TableCell className="text-right">{cs.arrears_count > 0 ? <span className="text-red-600 font-medium">{cs.arrears_count}</span> : '0'}</TableCell>
-                    <TableCell className="text-right font-mono text-sm">{cs.arrears_total > 0 ? <span className="text-red-600">{formatCurrency(cs.arrears_total)}</span> : formatCurrency(0)}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Phase 2: Bank Account Balances */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2"><Landmark className="h-4 w-4" />{'会社別銀行口座残高'}</CardTitle>
-        </CardHeader>
-        <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>{'会社名'}</TableHead>
-                  <TableHead>{'銀行名'}</TableHead>
-                  <TableHead className="hidden sm:table-cell">{'支店名'}</TableHead>
-                  <TableHead>{'口座番号'}</TableHead>
-                  <TableHead className="text-right">{'残高'}</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {bankBalances.map((b) => (
-                  <TableRow key={b.account_id}>
-                    <TableCell className="text-sm">{b.company_name}</TableCell>
-                    <TableCell className="font-medium">{b.bank_name}</TableCell>
-                    <TableCell className="hidden sm:table-cell text-sm">{b.branch_name}</TableCell>
-                    <TableCell className="font-mono text-sm">{b.account_number_masked}</TableCell>
-                    <TableCell className="text-right font-mono font-medium">{formatCurrency(b.current_balance)}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Repayment Schedule */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base flex items-center gap-2"><CalendarClock className="h-4 w-4" />{'今月の返済予定'}</CardTitle>
-          </CardHeader>
-          <CardContent className="p-0">
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-16">{'引落日'}</TableHead>
-                    <TableHead>{'会社'}</TableHead>
-                    <TableHead>{'借入先'}</TableHead>
-                    <TableHead className="text-right">{'月額'}</TableHead>
-                    <TableHead className="w-8"></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {[...repaymentSchedule].sort((a, b) => a.withdrawal_day - b.withdrawal_day).map((r) => (
-                    <TableRow key={r.id} className={r.is_at_risk ? 'bg-red-50' : undefined}>
-                      <TableCell className="font-mono text-center">{r.withdrawal_day}{'日'}</TableCell>
-                      <TableCell className="text-sm">{r.company_name}</TableCell>
-                      <TableCell className="text-sm">{r.lender_name}</TableCell>
-                      <TableCell className="text-right font-mono text-sm">{formatCurrency(r.monthly_repayment_amount)}</TableCell>
-                      <TableCell>{r.is_at_risk && <TrendingDown className="h-4 w-4 text-red-500" />}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Recent Fund Transfers */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base flex items-center gap-2"><Send className="h-4 w-4" />{'最近の資金移動'}</CardTitle>
-          </CardHeader>
-          <CardContent className="p-0">
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>{'日付'}</TableHead>
-                    <TableHead>{'振込元→振込先'}</TableHead>
-                    <TableHead className="text-right">{'金額'}</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {recentTransfers.length === 0 ? (
-                    <TableRow><TableCell colSpan={3} className="text-center py-4 text-muted-foreground">{'データがありません'}</TableCell></TableRow>
-                  ) : recentTransfers.map((t) => (
-                    <TableRow key={t.id}>
-                      <TableCell className="text-sm">{formatDate(t.transfer_date)}</TableCell>
-                      <TableCell className="text-sm">{t.from_label} → {t.to_label}</TableCell>
-                      <TableCell className="text-right font-mono text-sm">{formatCurrency(t.amount)}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-      {/* Phase 3: Document Management Widgets */}
+      {/* Repayment + Expiring Contracts + Recent Uploads */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Expiring Contracts */}
         <Card>
-          <CardHeader>
-            <CardTitle className="text-base flex items-center gap-2"><Clock className="h-4 w-4" />{'更新期限が近い契約書'}</CardTitle>
-          </CardHeader>
+          <CardHeader><CardTitle className="text-base flex items-center gap-2"><CalendarClock className="h-4 w-4" />{'\u4eca\u6708\u306e\u8fd4\u6e08\u4e88\u5b9a'}</CardTitle></CardHeader>
           <CardContent className="p-0">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>{'書類名'}</TableHead>
-                  <TableHead>{'期限'}</TableHead>
-                  <TableHead className="text-right">{'残日数'}</TableHead>
+                  <TableHead className="w-12">{'\u5f15\u843d\u65e5'}</TableHead>
+                  <TableHead>{'\u501f\u5165\u5148'}</TableHead>
+                  <TableHead className="text-right">{'\u6708\u984d'}</TableHead>
+                  <TableHead className="w-8"></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {[...repaymentSchedule].sort((a, b) => a.withdrawal_day - b.withdrawal_day).map((r) => (
+                  <TableRow key={r.id} className={r.is_at_risk ? 'bg-red-50' : undefined}>
+                    <TableCell className="font-mono text-center text-sm">{r.withdrawal_day}{'\u65e5'}</TableCell>
+                    <TableCell className="text-sm">{r.lender_name}</TableCell>
+                    <TableCell className="text-right font-mono text-sm">{formatCurrency(r.monthly_repayment_amount)}</TableCell>
+                    <TableCell>{r.is_at_risk && <TrendingDown className="h-4 w-4 text-red-500" />}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader><CardTitle className="text-base flex items-center gap-2"><Clock className="h-4 w-4" />{'\u66f4\u65b0\u671f\u9650\u304c\u8fd1\u3044\u5951\u7d04\u66f8'}</CardTitle></CardHeader>
+          <CardContent className="p-0">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{'\u66f8\u985e\u540d'}</TableHead>
+                  <TableHead className="text-right">{'\u6b8b\u65e5\u6570'}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {expiringContracts.length === 0 ? (
-                  <TableRow><TableCell colSpan={3} className="text-center py-4 text-muted-foreground">{'該当なし'}</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={2} className="text-center py-4 text-muted-foreground">{'\u8a72\u5f53\u306a\u3057'}</TableCell></TableRow>
                 ) : expiringContracts.map((c) => (
                   <TableRow key={c.id}>
                     <TableCell className="text-sm font-medium">{c.title}</TableCell>
-                    <TableCell className="text-sm">{formatDate(c.contract_end_date)}</TableCell>
                     <TableCell className="text-right">
-                      <span className={c.days_remaining <= 0 ? 'text-red-600 font-bold' : c.days_remaining <= 90 ? 'text-red-600 font-bold' : c.days_remaining <= 180 ? 'text-yellow-600 font-medium' : 'text-gray-600'}>
-                        {c.days_remaining < 0 ? `${Math.abs(c.days_remaining)}日超過` : `${c.days_remaining}日`}
+                      <span className={c.days_remaining <= 0 ? 'text-red-600 font-bold' : c.days_remaining <= 90 ? 'text-red-600 font-medium' : 'text-yellow-600'}>
+                        {c.days_remaining < 0 ? `${Math.abs(c.days_remaining)}\u65e5\u8d85\u904e` : `${c.days_remaining}\u65e5`}
                       </span>
                     </TableCell>
                   </TableRow>
@@ -545,44 +364,45 @@ export function DashboardPage() {
           </CardContent>
         </Card>
 
-        {/* Recent Uploads */}
         <Card>
-          <CardHeader>
-            <CardTitle className="text-base flex items-center gap-2"><Upload className="h-4 w-4" />{'最近アップロードされた書類'}</CardTitle>
-          </CardHeader>
+          <CardHeader><CardTitle className="text-base flex items-center gap-2"><Upload className="h-4 w-4" />{'\u6700\u8fd1\u306e\u53d6\u8fbc'}</CardTitle></CardHeader>
           <CardContent className="p-0">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>{'ファイル名'}</TableHead>
-                  <TableHead>{'日付'}</TableHead>
-                  <TableHead>{'状態'}</TableHead>
+                  <TableHead>{'\u30d5\u30a1\u30a4\u30eb\u540d'}</TableHead>
+                  <TableHead>{'\u72b6\u614b'}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {recentUploads.length === 0 ? (
-                  <TableRow><TableCell colSpan={3} className="text-center py-4 text-muted-foreground">{'データがありません'}</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={2} className="text-center py-4 text-muted-foreground">{'\u30c7\u30fc\u30bf\u306a\u3057'}</TableCell></TableRow>
                 ) : recentUploads.map((u) => (
                   <TableRow key={u.id}>
-                    <TableCell className="text-sm"><div className="flex items-center gap-1"><FileText className="h-3 w-3 text-muted-foreground" />{u.file_name}</div></TableCell>
-                    <TableCell className="text-sm">{formatDate(u.created_at)}</TableCell>
-                    <TableCell className="text-sm">{({uploaded:'取込済',processing:'処理中',extracted:'抽出済',review_pending:'確認待ち',confirmed:'確定済',error:'エラー'} as Record<string,string>)[u.status] || u.status}</TableCell>
+                    <TableCell className="text-sm"><div className="flex items-center gap-1"><FileText className="h-3 w-3 text-muted-foreground shrink-0" /><span className="truncate">{u.file_name}</span></div></TableCell>
+                    <TableCell className="text-xs">{UPLOAD_STATUS_LABELS[u.status] || u.status}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
           </CardContent>
         </Card>
+      </div>
 
-        {/* Pending Imports */}
-        <Card>
-          <CardContent className="pt-6 flex flex-col items-center justify-center h-full">
-            <FileText className="h-10 w-10 text-yellow-500 mb-3" />
-            <p className="text-4xl font-bold text-yellow-600">{pendingImports}</p>
-            <p className="text-sm text-muted-foreground mt-2">{'確認待ちの取込件数'}</p>
-            <p className="text-xs text-muted-foreground mt-1">{'人による確認が必要です'}</p>
-          </CardContent>
-        </Card>
+      {/* Section 3: Panel Menu */}
+      <div>
+        <h2 className="text-lg font-semibold mb-3">{'\u6a5f\u80fd\u30e1\u30cb\u30e5\u30fc'}</h2>
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-7 gap-3">
+          {PANEL_ITEMS.map((item) => (
+            <Card key={item.path} className="cursor-pointer hover:bg-gray-50 hover:border-blue-300 transition-colors" onClick={() => navigate(item.path)}>
+              <CardContent className="pt-4 pb-3 px-3 text-center">
+                <item.icon className="h-6 w-6 mx-auto text-blue-600 mb-1.5" />
+                <p className="text-sm font-medium leading-tight">{item.label}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">{item.description}</p>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       </div>
     </div>
   )
