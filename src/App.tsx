@@ -11,6 +11,21 @@ import { TenantsMgmtPage } from '@/app/tenants-mgmt/TenantsMgmtPage'
 import { ChargesPage } from '@/app/charges/ChargesPage'
 import { PaymentsPage } from '@/app/payments/PaymentsPage'
 import { ArrearsMgmtPage } from '@/app/arrears-mgmt/ArrearsMgmtPage'
+import { EmployeesPage } from '@/app/employees/EmployeesPage'
+import { ExpenseCategoriesPage } from '@/app/expense-categories/ExpenseCategoriesPage'
+import { ExpensesPage } from '@/app/expenses/ExpensesPage'
+import { PayrollPage } from '@/app/payroll/PayrollPage'
+import { BankAccountsPage } from '@/app/bank-accounts/BankAccountsPage'
+import { BankTransactionsPage } from '@/app/bank-transactions/BankTransactionsPage'
+import { LoanRepaymentsPage } from '@/app/loan-repayments/LoanRepaymentsPage'
+import { FundTransfersPage } from '@/app/fund-transfers/FundTransfersPage'
+import { DocumentCategoriesPage } from '@/app/document-categories/DocumentCategoriesPage'
+import { DocumentsPage } from '@/app/documents/DocumentsPage'
+import { DocumentDetailPage } from '@/app/documents/DocumentDetailPage'
+import { DocumentAlertsPage } from '@/app/document-alerts/DocumentAlertsPage'
+import { FileUploadPage } from '@/app/file-upload/FileUploadPage'
+import { ImportReviewPage } from '@/app/import-review/ImportReviewPage'
+import { ImportHistoryPage } from '@/app/import-history/ImportHistoryPage'
 import { UsersSettingsPage } from '@/app/settings/UsersSettingsPage'
 import { NotFoundPage } from '@/app/NotFoundPage'
 
@@ -31,6 +46,21 @@ export default function App() {
           <Route path="charges" element={<ChargesPage />} />
           <Route path="payments" element={<PaymentsPage />} />
           <Route path="arrears-mgmt" element={<ArrearsMgmtPage />} />
+          <Route path="employees" element={<EmployeesPage />} />
+          <Route path="expense-categories" element={<ExpenseCategoriesPage />} />
+          <Route path="expenses" element={<ExpensesPage />} />
+          <Route path="payroll" element={<PayrollPage />} />
+          <Route path="bank-accounts" element={<BankAccountsPage />} />
+          <Route path="bank-transactions" element={<BankTransactionsPage />} />
+          <Route path="loan-repayments" element={<LoanRepaymentsPage />} />
+          <Route path="fund-transfers" element={<FundTransfersPage />} />
+          <Route path="document-categories" element={<DocumentCategoriesPage />} />
+          <Route path="documents" element={<DocumentsPage />} />
+          <Route path="documents/:id" element={<DocumentDetailPage />} />
+          <Route path="document-alerts" element={<DocumentAlertsPage />} />
+          <Route path="file-upload" element={<FileUploadPage />} />
+          <Route path="import-review" element={<ImportReviewPage />} />
+          <Route path="import-history" element={<ImportHistoryPage />} />
           <Route path="settings/users" element={<UsersSettingsPage />} />
         </Route>
         <Route path="*" element={<NotFoundPage />} />

@@ -3,20 +3,79 @@ import { cn } from '@/lib/utils'
 import { useAppStore } from '@/store/app'
 import {
   LayoutDashboard, Building2, Home, DoorOpen, Users, Banknote,
-  CreditCard, AlertTriangle, Settings, Menu, X
+  CreditCard, AlertTriangle, Settings, Menu, X,
+  UserCog, FolderOpen, Receipt, Wallet, Landmark, ArrowLeftRight, CalendarClock, Send,
+  FileText, Upload, ClipboardCheck, History, Bell
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
-const navItems = [
-  { path: '/dashboard', label: 'ダッシュボード', icon: LayoutDashboard },
-  { path: '/companies', label: '会社管理', icon: Building2 },
-  { path: '/properties-mgmt', label: '物件管理', icon: Home },
-  { path: '/rooms', label: '部屋管理', icon: DoorOpen },
-  { path: '/tenants-mgmt', label: '入居者管理', icon: Users },
-  { path: '/charges', label: '家賃請求管理', icon: Banknote },
-  { path: '/payments', label: '入金管理', icon: CreditCard },
-  { path: '/arrears-mgmt', label: '未収・滞納管理', icon: AlertTriangle },
-  { path: '/settings/users', label: '設定', icon: Settings },
+interface NavSection {
+  title?: string
+  items: { path: string; label: string; icon: React.ComponentType<{ className?: string }> }[]
+}
+
+const navSections: NavSection[] = [
+  {
+    items: [
+      { path: '/dashboard', label: 'ダッシュボード', icon: LayoutDashboard },
+    ],
+  },
+  {
+    title: 'マスタ管理',
+    items: [
+      { path: '/companies', label: '会社管理', icon: Building2 },
+      { path: '/properties-mgmt', label: '物件管理', icon: Home },
+      { path: '/rooms', label: '部屋管理', icon: DoorOpen },
+      { path: '/tenants-mgmt', label: '入居者管理', icon: Users },
+      { path: '/employees', label: '従業員管理', icon: UserCog },
+    ],
+  },
+  {
+    title: '家賃管理',
+    items: [
+      { path: '/charges', label: '家賃請求管理', icon: Banknote },
+      { path: '/payments', label: '入金管理', icon: CreditCard },
+      { path: '/arrears-mgmt', label: '未収・滞納管理', icon: AlertTriangle },
+    ],
+  },
+  {
+    title: '経費・給与',
+    items: [
+      { path: '/expense-categories', label: '経費カテゴリ', icon: FolderOpen },
+      { path: '/expenses', label: '経費管理', icon: Receipt },
+      { path: '/payroll', label: '給与管理', icon: Wallet },
+    ],
+  },
+  {
+    title: '銀行・資金',
+    items: [
+      { path: '/bank-accounts', label: '銀行口座管理', icon: Landmark },
+      { path: '/bank-transactions', label: '銀行取引管理', icon: ArrowLeftRight },
+      { path: '/loan-repayments', label: '返済予定管理', icon: CalendarClock },
+      { path: '/fund-transfers', label: '資金移動管理', icon: Send },
+    ],
+  },
+  {
+    title: '書類管理',
+    items: [
+      { path: '/document-categories', label: '書類カテゴリ', icon: FolderOpen },
+      { path: '/documents', label: '書類管理', icon: FileText },
+      { path: '/document-alerts', label: '更新期限アラート', icon: Bell },
+    ],
+  },
+  {
+    title: 'ファイル取込',
+    items: [
+      { path: '/file-upload', label: 'ファイル取込', icon: Upload },
+      { path: '/import-review', label: '取込確認', icon: ClipboardCheck },
+      { path: '/import-history', label: '取込履歴', icon: History },
+    ],
+  },
+  {
+    items: [
+      { path: '/settings/users', label: '設定', icon: Settings },
+    ],
+  },
 ]
 
 export function Sidebar() {
@@ -51,26 +110,34 @@ export function Sidebar() {
           </Button>
         </div>
         <nav className="flex flex-col gap-1 p-2 overflow-y-auto h-[calc(100vh-3.5rem)]">
-          {navItems.map((item) => {
-            const isActive = location.pathname.startsWith(item.path)
-            return (
-              <Link
-                key={item.path}
-                to={item.path}
-                className={cn(
-                  "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
-                  isActive
-                    ? "bg-blue-50 text-blue-700"
-                    : "text-gray-600 hover:bg-gray-100 hover:text-gray-900",
-                  sidebarCollapsed && "justify-center px-2"
-                )}
-                title={sidebarCollapsed ? item.label : undefined}
-              >
-                <item.icon className="h-4 w-4 shrink-0" />
-                {!sidebarCollapsed && <span>{item.label}</span>}
-              </Link>
-            )
-          })}
+          {navSections.map((section, si) => (
+            <div key={si}>
+              {section.title && !sidebarCollapsed && (
+                <p className="px-3 pt-3 pb-1 text-xs font-semibold text-muted-foreground uppercase tracking-wider">{section.title}</p>
+              )}
+              {section.title && sidebarCollapsed && <div className="border-t my-1" />}
+              {section.items.map((item) => {
+                const isActive = location.pathname.startsWith(item.path)
+                return (
+                  <Link
+                    key={item.path}
+                    to={item.path}
+                    className={cn(
+                      "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                      isActive
+                        ? "bg-blue-50 text-blue-700"
+                        : "text-gray-600 hover:bg-gray-100 hover:text-gray-900",
+                      sidebarCollapsed && "justify-center px-2"
+                    )}
+                    title={sidebarCollapsed ? item.label : undefined}
+                  >
+                    <item.icon className="h-4 w-4 shrink-0" />
+                    {!sidebarCollapsed && <span>{item.label}</span>}
+                  </Link>
+                )
+              })}
+            </div>
+          ))}
         </nav>
       </aside>
 
@@ -89,25 +156,32 @@ export function Sidebar() {
           </Button>
         </div>
         <nav className="flex flex-col gap-1 p-2 overflow-y-auto h-[calc(100vh-3.5rem)]">
-          {navItems.map((item) => {
-            const isActive = location.pathname.startsWith(item.path)
-            return (
-              <Link
-                key={item.path}
-                to={item.path}
-                onClick={() => setMobileMenuOpen(false)}
-                className={cn(
-                  "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
-                  isActive
-                    ? "bg-blue-50 text-blue-700"
-                    : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
-                )}
-              >
-                <item.icon className="h-4 w-4 shrink-0" />
-                <span>{item.label}</span>
-              </Link>
-            )
-          })}
+          {navSections.map((section, si) => (
+            <div key={si}>
+              {section.title && (
+                <p className="px-3 pt-3 pb-1 text-xs font-semibold text-muted-foreground uppercase tracking-wider">{section.title}</p>
+              )}
+              {section.items.map((item) => {
+                const isActive = location.pathname.startsWith(item.path)
+                return (
+                  <Link
+                    key={item.path}
+                    to={item.path}
+                    onClick={() => setMobileMenuOpen(false)}
+                    className={cn(
+                      "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                      isActive
+                        ? "bg-blue-50 text-blue-700"
+                        : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                    )}
+                  >
+                    <item.icon className="h-4 w-4 shrink-0" />
+                    <span>{item.label}</span>
+                  </Link>
+                )
+              })}
+            </div>
+          ))}
         </nav>
       </aside>
     </>
