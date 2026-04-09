@@ -105,10 +105,10 @@ export function FileUploadPage() {
   // Handle files dropped from dashboard
   useEffect(() => {
     const state = location.state as { droppedFiles?: File[] } | null
-    if (state?.droppedFiles && state.droppedFiles.length > 0) {
+    if (state?.droppedFiles && state.droppedFiles.length > 0 && editable) {
       openUploadFlow(state.droppedFiles)
-      window.history.replaceState({}, document.title)
     }
+    window.history.replaceState({}, document.title)
   }, [location.state])
 
   const openUploadFlow = (selectedFiles: File[]) => {
