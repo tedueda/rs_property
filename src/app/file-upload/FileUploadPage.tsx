@@ -54,10 +54,10 @@ function guessImportTarget(file: File): ImportTargetType {
   const name = file.name.toLowerCase()
   if (name.includes('\u901a\u5e33') || name.includes('bank') || name.includes('\u660e\u7d30')) return 'bank_statement'
   if (name.includes('\u5bb6\u8cc3') || name.includes('rent')) return 'rent_roll'
-  if (name.includes('\u5165\u5c45') || name.includes('tenant') || name.includes('\u5951\u7d04')) return 'lease_contract'
+  if (name.includes('\u5165\u5c45') || name.includes('tenant') || name.includes('\u8cc3\u8cb8')) return 'lease_contract'
   if (name.includes('\u7d66\u4e0e') || name.includes('payroll')) return 'payroll_data'
   if (name.includes('\u7d4c\u8cbb') || name.includes('expense') || name.includes('\u9818\u53ce')) return 'expense_receipt'
-  if (name.includes('\u8fd4\u6e08') || name.includes('loan') || name.includes('\u501f\u5165')) return 'loan_contract'
+  if (name.includes('\u8fd4\u6e08') || name.includes('loan') || name.includes('\u501f\u5165') || name.includes('\u8cb8\u501f')) return 'loan_contract'
   if (name.includes('\u7269\u4ef6') || name.includes('property')) return 'property_info'
   if (name.includes('\u90e8\u5c4b') || name.includes('room')) return 'room_info'
   if (name.includes('\u5149\u71b1') || name.includes('utility') || name.includes('\u96fb\u6c17') || name.includes('\u30ac\u30b9') || name.includes('\u6c34\u9053')) return 'utility_bill'
