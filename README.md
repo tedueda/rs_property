@@ -144,6 +144,64 @@ This application centralizes fund management for a real estate management group,
 | President | Read-only for Phase 2 features |
 | View-only | Read-only for Phase 2 features |
 
+## Phase 3 Implementation
+
+### 1. Document Category Management (`/document-categories`)
+- Document category master data with sort order
+- Categories: lease contracts, loan contracts, guarantor contracts, renewal notices, invoices, receipts, payroll documents, internal applications, etc.
+
+### 2. Document Management (`/documents`)
+- Document CRUD with company/category/status filters
+- Business data linking (company, property, room, tenant, bank account, loan, expense, payroll)
+- Contract date tracking (start, end, renewal)
+- Status: active, expired, renewal_pending, cancelled, needs_review
+
+### 3. Document Detail (`/documents/:id`)
+- Version history with file upload
+- Latest version identification
+- Related entity links (many-to-many via document_links table)
+- File preview/download infrastructure
+
+### 4. Document Alerts (`/document-alerts`)
+- Expiring/expired contract detection
+- Categorized views: expired, renewal due, upcoming expiration
+- Days remaining calculation with color-coded urgency
+- Summary cards for quick status overview
+
+### 5. File Upload (`/file-upload`)
+- File upload with type selection (bank statement, receipt/invoice, lease contract, loan contract)
+- Supported formats: JPG, PNG, HEIF, PDF, Excel, Word
+- Upload status tracking: uploaded, processing, extracted, review_pending, confirmed, error
+- Status summary cards
+
+### 6. Import Review (`/import-review`)
+- OCR/extraction candidate review (human confirmation mandatory - no auto-confirm)
+- Raw text display with editable parsed fields
+- Three-action review: approve, reject, needs correction
+- Confirmation dialog for approval (irreversible action)
+- Review status filter
+
+### 7. Import History (`/import-history`)
+- Import log tracking with status filters
+- Status: imported, extracted, review_pending, confirmed, error
+- Error message display
+- Target table and confirmation timestamp tracking
+- Clickable status cards for quick filtering
+
+### 8. Dashboard Extension (Phase 3)
+- Expiring contracts list with remaining days
+- Recent file uploads with status
+- Pending import count (human confirmation required)
+
+### Permission Model (Phase 3)
+| Role | Phase 3 Access |
+|------|----------------|
+| Accounting Manager | Full edit access to all document/import features |
+| Payment Handler | Edit access to documents |
+| Expense/Salary Handler | Edit access to documents |
+| President | Read-only for Phase 3 features |
+| View-only | Read-only for Phase 3 features |
+
 ## Database Schema
 
 Main tables (see `supabase/migrations/`):
@@ -153,6 +211,10 @@ Main tables (see `supabase/migrations/`):
 - `employees`, `expense_categories`, `expense_records` (Phase 2)
 - `payroll_records`, `bank_accounts`, `bank_transactions` (Phase 2)
 - `loan_repayments`, `fund_transfer_records` (Phase 2)
+- `document_categories`, `documents`, `document_versions` (Phase 3)
+- `document_links`, `document_alerts` (Phase 3)
+- `uploaded_files`, `extracted_data_candidates` (Phase 3)
+- `import_logs`, `import_review_histories` (Phase 3)
 
 All tables include: `id`, `created_at`, `updated_at`, `deleted_at`, `created_by`, `updated_by`
 Soft delete pattern (logical deletion with `deleted_at`).
@@ -201,6 +263,9 @@ npm run build
 
    # Apply Phase 2 schema migration
    psql -f supabase/migrations/00006_phase2_schema.sql
+
+   # Apply Phase 3 schema migration
+   psql -f supabase/migrations/00007_phase3_document_management.sql
    ```
 3. Set environment variables with your Supabase credentials
 
@@ -224,6 +289,12 @@ src/
     expenses/             # Expense management (Phase 2)
     fund-transfers/       # Fund transfer management (Phase 2)
     loan-repayments/      # Loan repayment management (Phase 2)
+    document-categories/  # Document category management (Phase 3)
+    documents/            # Document management & detail (Phase 3)
+    document-alerts/      # Document expiration alerts (Phase 3)
+    file-upload/          # File upload infrastructure (Phase 3)
+    import-review/        # OCR/extraction review (Phase 3)
+    import-history/       # Import history tracking (Phase 3)
     login/                # Login & password reset
     payments/             # Payment management
     payroll/              # Payroll management (Phase 2)
