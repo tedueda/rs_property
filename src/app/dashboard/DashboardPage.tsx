@@ -75,9 +75,9 @@ const DEMO_EXPIRING_CONTRACTS: ExpiringContract[] = [
 ]
 
 const DEMO_RECENT_UPLOADS: RecentUpload[] = [
-  { id: '1', file_name: '通帳_林建設_202503.pdf', created_at: '2025-03-25', status: '確定済' },
-  { id: '2', file_name: '領収書_修繕工事.jpg', created_at: '2025-03-20', status: '確認待ち' },
-  { id: '3', file_name: '入居契約書_佐藤.pdf', created_at: '2025-03-18', status: '抽出済' },
+  { id: '1', file_name: '通帳_林建設_202503.pdf', created_at: '2025-03-25', status: 'confirmed' },
+  { id: '2', file_name: '領収書_修繕工事.jpg', created_at: '2025-03-20', status: 'review_pending' },
+  { id: '3', file_name: '入居契約書_佐藤.pdf', created_at: '2025-03-18', status: 'extracted' },
 ]
 
 const DEMO_PENDING_IMPORTS = 2
