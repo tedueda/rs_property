@@ -8,6 +8,15 @@ export function useAuth() {
 
   useEffect(() => {
     if (isDemoMode) {
+      setUser({
+        id: 'demo-user',
+        email: 'demo@example.com',
+        full_name: 'デモユーザー',
+        role: 'admin',
+        company_id: '1',
+        created_at: '',
+        updated_at: '',
+      } as User)
       setLoading(false)
       return
     }
@@ -45,12 +54,17 @@ export function useAuth() {
   }, [setUser, setLoading])
 
   const signIn = async (email: string, password: string) => {
+    if (isDemoMode) {
+      return { error: null }
+    }
     const { error } = await supabase.auth.signInWithPassword({ email, password })
     return { error }
   }
 
   const signOut = async () => {
-    await supabase.auth.signOut()
+    if (!isDemoMode) {
+      await supabase.auth.signOut()
+    }
     logout()
   }
 

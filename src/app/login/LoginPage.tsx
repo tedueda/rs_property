@@ -1,10 +1,10 @@
 import { useState } from 'react'
-import { Navigate } from 'react-router-dom'
+import { Navigate, Link } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card'
 import { Building2, Loader2 } from 'lucide-react'
 
 export function LoginPage() {
@@ -15,7 +15,7 @@ export function LoginPage() {
   const [loading, setLoading] = useState(false)
 
   if (isLoading) {
-    return <div className="flex h-screen items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" /></div>
+    return <div className="flex h-screen items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" /></div>
   }
 
   if (isAuthenticated) return <Navigate to="/dashboard" replace />
@@ -30,14 +30,14 @@ export function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-muted/30 px-4">
+    <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary">
-            <Building2 className="h-6 w-6 text-primary-foreground" />
+          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-blue-600">
+            <Building2 className="h-6 w-6 text-white" />
           </div>
-          <CardTitle className="text-2xl">RS不動産管理</CardTitle>
-          <CardDescription>アールエス株式会社 管理システム</CardDescription>
+          <CardTitle className="text-2xl">資金管理システム</CardTitle>
+          <CardDescription>不動産管理グループ 資金管理アプリ</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -55,6 +55,11 @@ export function LoginPage() {
             </Button>
           </form>
         </CardContent>
+        <CardFooter className="justify-center">
+          <Link to="/reset-password" className="text-sm text-blue-600 hover:underline">
+            パスワードをお忘れの方
+          </Link>
+        </CardFooter>
       </Card>
     </div>
   )
