@@ -129,7 +129,7 @@ export function ImportReviewPage() {
       reviewer_id: user?.id, reviewed_at: new Date().toISOString(),
     }).eq('id', selectedCandidate.id)
     await supabase.from('import_logs').update({ status: 'confirmed', confirmed_by: user?.id, confirmed_at: new Date().toISOString() })
-      .eq('uploaded_file_id', selectedCandidate.uploaded_file_id)
+      .eq('uploaded_file_id', selectedCandidate.uploaded_file_id).neq('status', 'error')
     await supabase.from('import_review_histories').insert({
       extracted_data_candidate_id: selectedCandidate.id, reviewer_id: user?.id,
       previous_status: selectedCandidate.review_status, new_status: 'approved', comment: reviewNotes,
