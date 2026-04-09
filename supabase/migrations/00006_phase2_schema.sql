@@ -233,9 +233,9 @@ BEGIN
     -- Read: authenticated users
     EXECUTE format('CREATE POLICY %I ON %I FOR SELECT TO authenticated USING (true)', tbl || '_select', tbl);
     -- Insert: accounting_manager or expense_staff
-    EXECUTE format('CREATE POLICY %I ON %I FOR INSERT TO authenticated WITH CHECK (user_can_edit() OR user_has_role(''expense_staff''))', tbl || '_insert', tbl);
+    EXECUTE format('CREATE POLICY %I ON %I FOR INSERT TO authenticated WITH CHECK (user_can_edit() OR user_has_role(ARRAY[''expense_staff'']))', tbl || '_insert', tbl);
     -- Update: accounting_manager or expense_staff
-    EXECUTE format('CREATE POLICY %I ON %I FOR UPDATE TO authenticated USING (user_can_edit() OR user_has_role(''expense_staff''))', tbl || '_update', tbl);
+    EXECUTE format('CREATE POLICY %I ON %I FOR UPDATE TO authenticated USING (user_can_edit() OR user_has_role(ARRAY[''expense_staff'']))', tbl || '_update', tbl);
     -- Delete: accounting_manager only
     EXECUTE format('CREATE POLICY %I ON %I FOR DELETE TO authenticated USING (user_can_edit())', tbl || '_delete', tbl);
   END LOOP;

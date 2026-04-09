@@ -402,7 +402,7 @@ export function DashboardPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {repaymentSchedule.sort((a, b) => a.withdrawal_day - b.withdrawal_day).map((r) => (
+                  {[...repaymentSchedule].sort((a, b) => a.withdrawal_day - b.withdrawal_day).map((r) => (
                     <TableRow key={r.id} className={r.is_at_risk ? 'bg-red-50' : undefined}>
                       <TableCell className="font-mono text-center">{r.withdrawal_day}{'日'}</TableCell>
                       <TableCell className="text-sm">{r.company_name}</TableCell>
