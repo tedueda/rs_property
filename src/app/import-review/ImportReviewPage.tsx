@@ -59,7 +59,8 @@ export function ImportReviewPage() {
   const [reviewDialogOpen, setReviewDialogOpen] = useState(false)
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false)
   const [selectedCandidate, setSelectedCandidate] = useState<DemoCandidate | null>(null)
-  const [editedJson, setEditedJson] = useState<DemoParsedData>({})
+  const [editedJson, setEditedJson] = useState<Record<string, string>>({})
+  const [originalTypes, setOriginalTypes] = useState<Record<string, 'number' | 'string'>>({})
   const [reviewNotes, setReviewNotes] = useState('')
   const [saving, setSaving] = useState(false)
   const [filterStatus, setFilterStatus] = useState('')
@@ -89,21 +90,42 @@ export function ImportReviewPage() {
 
   const openReview = (c: DemoCandidate) => {
     setSelectedCandidate(c)
-    setEditedJson({ ...c.parsed_json })
+    const types: Record<string, 'number' | 'string'> = {}
+    const strValues: Record<string, string> = {}
+    for (const [k, v] of Object.entries(c.parsed_json)) {
+      types[k] = typeof v === 'number' ? 'number' : 'string'
+      strValues[k] = String(v)
+    }
+    setOriginalTypes(types)
+    setEditedJson(strValues)
     setReviewNotes(c.notes || '')
     setReviewDialogOpen(true)
+  }
+
+  const resolveEditedJson = (): DemoParsedData => {
+    const result: DemoParsedData = {}
+    for (const [k, v] of Object.entries(editedJson)) {
+      if (originalTypes[k] === 'number' && v !== '' && !isNaN(Number(v))) {
+        result[k] = Number(v)
+      } else {
+        result[k] = v
+      }
+    }
+    return result
   }
 
   const handleApprove = async () => {
     if (!selectedCandidate) return
     setSaving(true)
     if (isDemoMode) {
-      setCandidates(prev => prev.map(c => c.id === selectedCandidate.id ? { ...c, review_status: 'approved' as ReviewStatus, parsed_json: editedJson, notes: reviewNotes, reviewed_at: new Date().toISOString() } : c))
+      const finalJson = resolveEditedJson()
+      setCandidates(prev => prev.map(c => c.id === selectedCandidate.id ? { ...c, review_status: 'approved' as ReviewStatus, parsed_json: finalJson, notes: reviewNotes, reviewed_at: new Date().toISOString() } : c))
       setConfirmDialogOpen(false); setReviewDialogOpen(false); setSaving(false)
       return
     }
+    const finalJson = resolveEditedJson()
     await supabase.from('extracted_data_candidates').update({
-      review_status: 'approved', parsed_json: editedJson, notes: reviewNotes,
+      review_status: 'approved', parsed_json: finalJson, notes: reviewNotes,
       reviewer_id: user?.id, reviewed_at: new Date().toISOString(),
     }).eq('id', selectedCandidate.id)
     await supabase.from('import_logs').update({ status: 'confirmed', confirmed_by: user?.id, confirmed_at: new Date().toISOString() })
@@ -297,11 +319,7 @@ export function ImportReviewPage() {
                         <Label className="w-32 text-right text-sm font-medium shrink-0">{key}</Label>
                         <Input
                           value={String(value)}
-                          onChange={e => {
-                            const newVal = e.target.value
-                            const parsed = Number(newVal)
-                            setEditedJson(prev => ({ ...prev, [key]: newVal !== '' && !isNaN(parsed) ? parsed : newVal }))
-                          }}
+                          onChange={e => setEditedJson(prev => ({ ...prev, [key]: e.target.value }))}
                           className="flex-1"
                         />
                       </div>
