@@ -108,7 +108,7 @@ export function DocumentDetailPage() {
     setSaving(true)
     if (isDemoMode) {
       const newVersion: DocumentVersion = {
-        id: String(Date.now()), document_id: id, version_number: versions.length + 1,
+        id: String(Date.now()), document_id: id, version_number: Math.max(0, ...versions.map(v => v.version_number)) + 1,
         file_path: `/docs/upload_${Date.now()}.pdf`, file_name: selectedFile?.name || 'uploaded_file.pdf',
         file_size: selectedFile?.size || 0, mime_type: selectedFile?.type || 'application/pdf',
         notes: uploadNotes, created_at: new Date().toISOString(),
@@ -122,7 +122,7 @@ export function DocumentDetailPage() {
       const { error: uploadError } = await supabase.storage.from('documents').upload(filePath, selectedFile)
       if (!uploadError) {
         await supabase.from('document_versions').insert({
-          document_id: id, version_number: versions.length + 1, file_path: filePath,
+          document_id: id, version_number: Math.max(0, ...versions.map(v => v.version_number)) + 1, file_path: filePath,
           file_name: selectedFile.name, file_size: selectedFile.size, mime_type: selectedFile.type,
           notes: uploadNotes, uploaded_by: user?.id,
         })
