@@ -223,20 +223,33 @@ WHERE NOT EXISTS (SELECT 1 FROM expense_categories ec WHERE ec.category_name = v
 -- ============================================================
 -- 11. RLS policies for Phase 2 tables
 -- ============================================================
+-- Expense/payroll tables: accounting_manager OR expense_staff can write
 DO $$
 DECLARE
   tbl TEXT;
 BEGIN
-  FOR tbl IN SELECT unnest(ARRAY['employees', 'expense_categories', 'expense_records', 'payroll_records', 'bank_accounts', 'bank_transactions', 'loan_repayments', 'fund_transfer_records'])
+  FOR tbl IN SELECT unnest(ARRAY['employees', 'expense_categories', 'expense_records', 'payroll_records'])
   LOOP
     EXECUTE format('ALTER TABLE %I ENABLE ROW LEVEL SECURITY', tbl);
-    -- Read: authenticated users
     EXECUTE format('CREATE POLICY %I ON %I FOR SELECT TO authenticated USING (true)', tbl || '_select', tbl);
-    -- Insert: accounting_manager or expense_staff
     EXECUTE format('CREATE POLICY %I ON %I FOR INSERT TO authenticated WITH CHECK (user_can_edit() OR user_has_role(ARRAY[''expense_staff'']))', tbl || '_insert', tbl);
-    -- Update: accounting_manager or expense_staff
     EXECUTE format('CREATE POLICY %I ON %I FOR UPDATE TO authenticated USING (user_can_edit() OR user_has_role(ARRAY[''expense_staff'']))', tbl || '_update', tbl);
-    -- Delete: accounting_manager only
+    EXECUTE format('CREATE POLICY %I ON %I FOR DELETE TO authenticated USING (user_can_edit())', tbl || '_delete', tbl);
+  END LOOP;
+END;
+$$;
+
+-- Bank/finance tables: accounting_manager only can write
+DO $$
+DECLARE
+  tbl TEXT;
+BEGIN
+  FOR tbl IN SELECT unnest(ARRAY['bank_accounts', 'bank_transactions', 'loan_repayments', 'fund_transfer_records'])
+  LOOP
+    EXECUTE format('ALTER TABLE %I ENABLE ROW LEVEL SECURITY', tbl);
+    EXECUTE format('CREATE POLICY %I ON %I FOR SELECT TO authenticated USING (true)', tbl || '_select', tbl);
+    EXECUTE format('CREATE POLICY %I ON %I FOR INSERT TO authenticated WITH CHECK (user_can_edit())', tbl || '_insert', tbl);
+    EXECUTE format('CREATE POLICY %I ON %I FOR UPDATE TO authenticated USING (user_can_edit())', tbl || '_update', tbl);
     EXECUTE format('CREATE POLICY %I ON %I FOR DELETE TO authenticated USING (user_can_edit())', tbl || '_delete', tbl);
   END LOOP;
 END;

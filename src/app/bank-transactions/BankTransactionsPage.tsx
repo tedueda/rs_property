@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase, isDemoMode } from '@/lib/supabase/client'
 import { useAuth } from '@/hooks/useAuth'
-import { canEditExpenses } from '@/lib/permissions'
+import { canEdit } from '@/lib/permissions'
 import type { BankTransaction, BankAccount } from '@/types'
 import { TRANSACTION_TYPES, formatCurrency, formatDate, maskAccountNumber } from '@/lib/constants'
 import { PageHeader } from '@/components/shared/PageHeader'
@@ -45,7 +45,7 @@ const emptyForm: TxForm = { bank_account_id: '', transaction_date: '', transacti
 
 export function BankTransactionsPage() {
   const { user } = useAuth()
-  const editable = canEditExpenses(user)
+  const editable = canEdit(user)
   const [transactions, setTransactions] = useState<BankTransaction[]>([])
   const [accounts, setAccounts] = useState<BankAccount[]>([])
   const [loading, setLoading] = useState(true)

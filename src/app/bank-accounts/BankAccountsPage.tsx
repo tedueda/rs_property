@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase, isDemoMode } from '@/lib/supabase/client'
 import { useAuth } from '@/hooks/useAuth'
-import { canEditExpenses } from '@/lib/permissions'
+import { canEdit } from '@/lib/permissions'
 import type { BankAccount, Company } from '@/types'
 import { ACCOUNT_TYPES, formatCurrency, maskAccountNumber } from '@/lib/constants'
 import { PageHeader } from '@/components/shared/PageHeader'
@@ -48,7 +48,7 @@ const emptyForm: AccountForm = { company_id: '', bank_name: '', branch_name: '',
 
 export function BankAccountsPage() {
   const { user } = useAuth()
-  const editable = canEditExpenses(user)
+  const editable = canEdit(user)
   const [accounts, setAccounts] = useState<BankAccount[]>([])
   const [companies, setCompanies] = useState<Company[]>([])
   const [loading, setLoading] = useState(true)
