@@ -37,7 +37,7 @@ function getFileIcon(mimeType: string) {
 const EXCEL_TO_IMPORT_TARGET: Record<ExcelImportTarget, ImportTargetType> = {
   bank_transactions: 'bank_statement',
   rent_roll: 'rent_roll',
-  tenant_list: 'other',
+  tenant_list: 'tenant_list',
   expense_list: 'expense_receipt',
   payroll_data: 'payroll_data',
   room_list: 'room_info',

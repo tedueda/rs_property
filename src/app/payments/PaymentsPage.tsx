@@ -65,18 +65,29 @@ export function PaymentsPage() {
   const [matchCandidates, setMatchCandidates] = useState<MatchCandidate[]>([])
   const [matchDialogOpen, setMatchDialogOpen] = useState(false)
   const [, setMatchingPayerId] = useState<string | null>(null)
+  const [tenants, setTenants] = useState(DEMO_TENANTS)
 
   const fetchData = useCallback(async () => {
     setLoading(true)
     if (isDemoMode) {
-      setPayments(DEMO_PAYMENTS); setCharges(DEMO_CHARGES)
+      setPayments(DEMO_PAYMENTS); setCharges(DEMO_CHARGES); setTenants(DEMO_TENANTS)
       setLoading(false); return
     }
-    const [{ data: pm }, { data: ch }] = await Promise.all([
+    const [{ data: pm }, { data: ch }, { data: tn }, { data: aliases }] = await Promise.all([
       supabase.from('payment_records').select('*').is('deleted_at', null).order('payment_date', { ascending: false }),
       supabase.from('monthly_charges').select('id, target_month, billed_total, tenant_id, room_id, status').is('deleted_at', null).in('status', ['confirmed', 'partial_paid', 'overdue']),
+      supabase.from('tenants').select('id, full_name, full_name_kana, tenant_name_normalized').is('deleted_at', null),
+      supabase.from('tenant_aliases').select('tenant_id, alias_name'),
     ])
     setPayments(pm || []); setCharges(ch || [])
+    // Build tenants with aliases for fuzzy matching
+    const aliasMap = new Map<string, string[]>()
+    for (const a of (aliases || [])) {
+      const list = aliasMap.get(a.tenant_id) || []
+      list.push(a.alias_name)
+      aliasMap.set(a.tenant_id, list)
+    }
+    setTenants((tn || []).map(t => ({ ...t, aliases: aliasMap.get(t.id) || [] })))
     setLoading(false)
   }, [])
 
@@ -107,7 +118,7 @@ export function PaymentsPage() {
   // Fuzzy matching for payer name (改修9)
   const runFuzzyMatch = (payerName: string, paymentId?: string) => {
     if (!payerName.trim()) return
-    const candidates = findMatchCandidates(payerName, DEMO_TENANTS)
+    const candidates = findMatchCandidates(payerName, tenants)
     setMatchCandidates(candidates)
     setMatchingPayerId(paymentId || null)
     if (candidates.length > 0) setMatchDialogOpen(true)
