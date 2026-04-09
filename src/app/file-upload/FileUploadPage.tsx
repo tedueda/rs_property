@@ -109,7 +109,8 @@ export function FileUploadPage() {
       openUploadFlow(state.droppedFiles)
     }
     window.history.replaceState({}, document.title)
-  }, [location.state])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.state, editable])
 
   const openUploadFlow = (selectedFiles: File[]) => {
     userOverrodeTarget.current = false
