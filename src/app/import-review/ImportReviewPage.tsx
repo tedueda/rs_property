@@ -144,6 +144,10 @@ export function ImportReviewPage() {
     await supabase.from('extracted_data_candidates').update({
       review_status: 'needs_correction', notes: reviewNotes, reviewer_id: user?.id,
     }).eq('id', selectedCandidate.id)
+    await supabase.from('import_review_histories').insert({
+      extracted_data_candidate_id: selectedCandidate.id, reviewer_id: user?.id,
+      previous_status: selectedCandidate.review_status, new_status: 'needs_correction', comment: reviewNotes,
+    })
     setSaving(false); setReviewDialogOpen(false); fetchData()
   }
 
@@ -293,7 +297,11 @@ export function ImportReviewPage() {
                         <Label className="w-32 text-right text-sm font-medium shrink-0">{key}</Label>
                         <Input
                           value={String(value)}
-                          onChange={e => setEditedJson(prev => ({ ...prev, [key]: e.target.value }))}
+                          onChange={e => {
+                            const newVal = e.target.value
+                            const parsed = Number(newVal)
+                            setEditedJson(prev => ({ ...prev, [key]: newVal !== '' && !isNaN(parsed) ? parsed : newVal }))
+                          }}
                           className="flex-1"
                         />
                       </div>

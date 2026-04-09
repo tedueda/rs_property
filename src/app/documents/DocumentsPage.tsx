@@ -126,7 +126,7 @@ export function DocumentsPage() {
   const handleSave = async () => {
     if (!form.title.trim()) return
     setSaving(true)
-    const payload = { ...form, category_id: form.category_id || null, company_id: form.company_id || null }
+    const payload = { ...form, category_id: form.category_id || null, company_id: form.company_id || null, issue_date: form.issue_date || null, contract_start_date: form.contract_start_date || null, contract_end_date: form.contract_end_date || null, renewal_date: form.renewal_date || null }
     if (isDemoMode) {
       if (editingId) {
         setDocuments(prev => prev.map(d => d.id === editingId ? { ...d, ...payload } as unknown as Document : d))
