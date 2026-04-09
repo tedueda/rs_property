@@ -6,7 +6,7 @@
 |---|---|---|
 | `VITE_SUPABASE_URL` | Supabase\u30d7\u30ed\u30b8\u30a7\u30af\u30c8URL | `https://xxx.supabase.co` |
 | `VITE_SUPABASE_ANON_KEY` | Supabase anon/public key | `eyJhbGci...` |
-| `VITE_SUPABASE_SERVICE_ROLE_KEY` | Service role key (\u30b5\u30fc\u30d0\u30fc\u5074\u306e\u307f) | `eyJhbGci...` |
+| `SUPABASE_SERVICE_ROLE_KEY` | Service role key (\u30b5\u30fc\u30d0\u30fc\u5074\u306e\u307f\u3001VITE_\u30d7\u30ec\u30d5\u30a3\u30c3\u30af\u30b9\u4e0d\u53ef) | `eyJhbGci...` |
 | `VITE_DEMO_MODE` | \u30c7\u30e2\u30e2\u30fc\u30c9\u30d5\u30e9\u30b0 | `false` |
 | `VITE_APP_ENV` | \u74b0\u5883\u8b58\u5225\u5b50 | `production` |
 | `VITE_STORAGE_BUCKET` | Storage\u30d0\u30b1\u30c3\u30c8\u540d | `documents` |
