@@ -23,7 +23,7 @@ export function MainLayout() {
     <div className="min-h-screen bg-background">
       <Sidebar />
       <Header />
-      <main className={`pt-14 transition-all duration-300 ${sidebarCollapsed ? 'ml-16' : 'ml-60'}`}>
+      <main className={`pt-14 transition-all duration-300 ${sidebarCollapsed ? 'lg:ml-16' : 'lg:ml-60'}`}>
         <div className="p-6">
           <Outlet />
         </div>
