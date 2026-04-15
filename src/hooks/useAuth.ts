@@ -23,7 +23,12 @@ export function useAuth() {
 
     const checkSession = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession()
+        // Add timeout to prevent infinite loading if Supabase is unreachable
+        const sessionPromise = supabase.auth.getSession()
+        const timeoutPromise = new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error('Session check timed out')), 5000)
+        )
+        const { data: { session } } = await Promise.race([sessionPromise, timeoutPromise])
         if (session?.user) {
           const { data } = await supabase
             .from('users')
@@ -34,7 +39,7 @@ export function useAuth() {
           else setUser({ id: session.user.id, email: session.user.email || '', full_name: session.user.email || '', role: 'staff', company_id: '', created_at: '', updated_at: '' })
         }
       } catch {
-        // Not authenticated
+        // Not authenticated or timed out
       } finally {
         setLoading(false)
       }

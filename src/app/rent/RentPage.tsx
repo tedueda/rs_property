@@ -7,76 +7,63 @@ import { Badge } from '@/components/ui/badge'
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '@/components/ui/table'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { RENT_CHARGE_STATUSES } from '@/lib/constants'
-import { Search, Plus, Check } from 'lucide-react'
-
-const mockCharges = [
-  { id: '1', tenant: '田中太郎', property: 'サンハイツA棟 101', month: '2026年3月', total: 80000, status: 'paid' as const },
-  { id: '2', tenant: '佐藤花子', property: 'グリーンコート 205', month: '2026年3月', total: 128000, status: 'paid' as const },
-  { id: '3', tenant: '山田一郎', property: 'パークビュー 301', month: '2026年3月', total: 87000, status: 'pending' as const },
-  { id: '4', tenant: '鈴木健一', property: 'サンハイツA棟 201', month: '2026年3月', total: 128000, status: 'overdue' as const },
-  { id: '5', tenant: '高橋美和', property: 'リバーサイド荘 102', month: '2026年3月', total: 72000, status: 'partial' as const },
-]
-
-const mockPayments = [
-  { id: '1', date: '2026-03-25', payer: '田中太郎', amount: 80000, method: '振込', matched: true },
-  { id: '2', date: '2026-03-25', payer: '佐藤花子', amount: 128000, method: '振込', matched: true },
-  { id: '3', date: '2026-03-28', payer: 'タカハシ', amount: 50000, method: '振込', matched: false },
-]
+import { Search, Plus, Check, Loader2 } from 'lucide-react'
+import { useRentCharges, useRentPayments } from '@/lib/supabase/hooks'
 
 export function RentPage() {
+  const { data: charges, loading: loadingCharges } = useRentCharges()
+  const { data: payments, loading: loadingPayments } = useRentPayments()
   const [tab, setTab] = useState('charges')
   const [search, setSearch] = useState('')
 
   useEffect(() => { document.title = '家賃管理 - RS不動産管理' }, [])
 
+  const loading = loadingCharges || loadingPayments
+
+  const totalCharged = charges.reduce((s, c) => s + (c.total_amount || 0), 0)
+  const totalPaid = payments.reduce((s, p) => s + (p.amount || 0), 0)
+  const totalOverdue = charges.filter(c => c.status === 'overdue').reduce((s, c) => s + (c.total_amount || 0), 0)
+
+  if (loading) {
+    return <div className="flex items-center justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
+  }
+
   return (
     <div>
       <PageHeader title="家賃管理" description="請求・入金管理"
-        actions={<Button><Plus className="mr-2 h-4 w-4" />入金登録</Button>}
-      />
-
+        actions={<Button><Plus className="mr-2 h-4 w-4" />入金登録</Button>} />
       <div className="grid gap-4 grid-cols-2 lg:grid-cols-4 mb-6">
-        <Card><CardContent className="p-4"><p className="text-sm text-muted-foreground">今月請求</p><p className="text-2xl font-bold">¥495,000</p></CardContent></Card>
-        <Card><CardContent className="p-4"><p className="text-sm text-muted-foreground">入金済</p><p className="text-2xl font-bold text-green-600">¥208,000</p></CardContent></Card>
-        <Card><CardContent className="p-4"><p className="text-sm text-muted-foreground">未収</p><p className="text-2xl font-bold text-orange-600">¥287,000</p></CardContent></Card>
-        <Card><CardContent className="p-4"><p className="text-sm text-muted-foreground">滞納</p><p className="text-2xl font-bold text-red-600">¥128,000</p></CardContent></Card>
+        <Card><CardContent className="p-4"><p className="text-sm text-muted-foreground">請求総額</p><p className="text-2xl font-bold">¥{totalCharged.toLocaleString()}</p></CardContent></Card>
+        <Card><CardContent className="p-4"><p className="text-sm text-muted-foreground">入金総額</p><p className="text-2xl font-bold text-green-600">¥{totalPaid.toLocaleString()}</p></CardContent></Card>
+        <Card><CardContent className="p-4"><p className="text-sm text-muted-foreground">未収総額</p><p className="text-2xl font-bold text-orange-600">¥{(totalCharged - totalPaid).toLocaleString()}</p></CardContent></Card>
+        <Card><CardContent className="p-4"><p className="text-sm text-muted-foreground">滞納総額</p><p className="text-2xl font-bold text-red-600">¥{totalOverdue.toLocaleString()}</p></CardContent></Card>
       </div>
-
       <Tabs value={tab} onValueChange={setTab}>
         <TabsList className="mb-4">
           <TabsTrigger value="charges">請求一覧</TabsTrigger>
           <TabsTrigger value="payments">入金一覧</TabsTrigger>
         </TabsList>
-
         <TabsContent value="charges">
-          <Card className="mb-4">
-            <CardContent className="p-4">
-              <div className="relative">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input placeholder="入居者名・物件名で検索..." className="pl-9" value={search} onChange={(e) => setSearch(e.target.value)} />
-              </div>
-            </CardContent>
-          </Card>
+          <Card className="mb-4"><CardContent className="p-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+              <Input placeholder="入居者名・物件名で検索..." className="pl-9" value={search} onChange={(e) => setSearch(e.target.value)} />
+            </div>
+          </CardContent></Card>
           <Card>
             <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>入居者</TableHead>
-                  <TableHead>物件</TableHead>
-                  <TableHead>対象月</TableHead>
-                  <TableHead className="text-right">請求額</TableHead>
-                  <TableHead>ステータス</TableHead>
-                </TableRow>
-              </TableHeader>
+              <TableHeader><TableRow>
+                <TableHead>対象月</TableHead><TableHead className="text-right">請求額</TableHead><TableHead>ステータス</TableHead>
+              </TableRow></TableHeader>
               <TableBody>
-                {mockCharges.map((c) => {
-                  const st = RENT_CHARGE_STATUSES[c.status]
+                {charges.length === 0 ? (
+                  <TableRow><TableCell colSpan={3} className="text-center py-8 text-muted-foreground">請求データがありません</TableCell></TableRow>
+                ) : charges.map((c) => {
+                  const st = RENT_CHARGE_STATUSES[c.status] || { label: c.status, color: '' }
                   return (
                     <TableRow key={c.id}>
-                      <TableCell className="font-medium">{c.tenant}</TableCell>
-                      <TableCell className="text-muted-foreground">{c.property}</TableCell>
-                      <TableCell>{c.month}</TableCell>
-                      <TableCell className="text-right font-medium">¥{c.total.toLocaleString()}</TableCell>
+                      <TableCell>{c.charge_month}</TableCell>
+                      <TableCell className="text-right font-medium">¥{(c.total_amount || 0).toLocaleString()}</TableCell>
                       <TableCell><span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${st.color}`}>{st.label}</span></TableCell>
                     </TableRow>
                   )
@@ -85,31 +72,23 @@ export function RentPage() {
             </Table>
           </Card>
         </TabsContent>
-
         <TabsContent value="payments">
           <Card>
             <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>入金日</TableHead>
-                  <TableHead>振込人名</TableHead>
-                  <TableHead className="text-right">金額</TableHead>
-                  <TableHead>方法</TableHead>
-                  <TableHead>消込</TableHead>
-                </TableRow>
-              </TableHeader>
+              <TableHeader><TableRow>
+                <TableHead>入金日</TableHead><TableHead>振込人名</TableHead><TableHead className="text-right">金額</TableHead><TableHead>方法</TableHead><TableHead>消込</TableHead>
+              </TableRow></TableHeader>
               <TableBody>
-                {mockPayments.map((p) => (
+                {payments.length === 0 ? (
+                  <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">入金データがありません</TableCell></TableRow>
+                ) : payments.map((p) => (
                   <TableRow key={p.id}>
-                    <TableCell>{p.date}</TableCell>
-                    <TableCell className="font-medium">{p.payer}</TableCell>
-                    <TableCell className="text-right font-medium">¥{p.amount.toLocaleString()}</TableCell>
-                    <TableCell>{p.method}</TableCell>
+                    <TableCell>{p.payment_date}</TableCell>
+                    <TableCell className="font-medium">{p.payer_name || '-'}</TableCell>
+                    <TableCell className="text-right font-medium">¥{(p.amount || 0).toLocaleString()}</TableCell>
+                    <TableCell>{p.payment_method || '-'}</TableCell>
                     <TableCell>
-                      {p.matched
-                        ? <Badge variant="success"><Check className="mr-1 h-3 w-3" />消込済</Badge>
-                        : <Button variant="outline" size="sm">消込候補</Button>
-                      }
+                      {p.reconciliation_status === 'matched' ? <Badge variant="success"><Check className="mr-1 h-3 w-3" />消込済</Badge> : <Button variant="outline" size="sm">消込候補</Button>}
                     </TableCell>
                   </TableRow>
                 ))}
