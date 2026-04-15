@@ -7,4 +7,13 @@ export const isDemoMode = !supabaseUrl || !supabaseAnonKey
 
 export const supabase: SupabaseClient = isDemoMode
   ? (null as unknown as SupabaseClient)
-  : createClient(supabaseUrl, supabaseAnonKey)
+  : createClient(supabaseUrl, supabaseAnonKey, {
+      auth: {
+        autoRefreshToken: true,
+        persistSession: true,
+        detectSessionInUrl: true,
+        flowType: 'implicit',
+        // Disable navigator.locks to prevent deadlocks in certain environments
+        lock: 'no-op' as 'no-op',
+      },
+    })
