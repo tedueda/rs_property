@@ -1,836 +1,408 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { Link } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
+import { supabase, isDemoMode } from '@/lib/supabase/client'
+import { formatCurrency, maskAccountNumber, ALLOWED_FILE_EXTENSIONS } from '@/lib/constants'
+import type { BankAccountBalance, RepaymentSchedule } from '@/types'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Progress } from '@/components/ui/progress'
-import { PageHeader } from '@/components/layout/PageHeader'
 import {
-  Building2, DoorOpen, Users, FileText, FileCheck, AlertTriangle, Wrench,
-  ScanLine, ArrowRight, Upload, FileSpreadsheet, FileType, Presentation,
-  File, CheckCircle2, XCircle, Edit3, ChevronDown, ChevronUp, Loader2,
-  FolderOpen, ArrowRightCircle, Trash2, RotateCcw, Plus
+  Loader2, Upload, Landmark, CalendarClock, TrendingDown, FileText,
+  Building2, Home, DoorOpen, Users, Banknote, CreditCard, AlertTriangle,
+  Receipt, Wallet, Send, FolderOpen, History, ClipboardCheck, Bell, UserCog,
+  ArrowLeftRight, BarChart3, Clock
 } from 'lucide-react'
-import type { DashboardStats, DashboardAlerts } from '@/types'
-import { useDashboardStats, uploadFile, createOcrJob, updateOcrJob, saveOcrExtractedFields, useApplications } from '@/lib/supabase/hooks'
-import { runOcr, isOcrAvailable } from '@/lib/ocr/vision'
-import { useAuthStore } from '@/store/auth'
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 
-// --- Types for OCR workflow ---
-type FileStatus = 'uploading' | 'processing' | 'completed' | 'failed'
-type DataCategory = 'application' | 'property' | 'contract' | 'tenant' | 'repair' | 'other'
-
-interface UploadedFile {
-  id: string; name: string; type: string; size: number
-  status: FileStatus; progress: number; uploadedAt: string
-}
-
-interface ExtractedField {
-  id: string; label: string; value: string; confidence: number
-  status: 'auto' | 'corrected' | 'manual' | 'unreadable'; originalValue: string
-}
-
-interface OcrDocument {
-  id: string; file: UploadedFile; fields: ExtractedField[]
-  category: DataCategory | null; categoryConfirmed: boolean; suggestedCategory: DataCategory
-}
-
-const FILE_ACCEPT = '.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.jpg,.jpeg,.png,.heic,.tiff,.bmp'
-
-function getFileIcon(type: string) {
-  if (type.includes('spreadsheet') || type.includes('excel') || type.includes('.xls')) return FileSpreadsheet
-  if (type.includes('presentation') || type.includes('powerpoint') || type.includes('.ppt')) return Presentation
-  if (type.includes('word') || type.includes('.doc')) return FileType
-  if (type.includes('pdf')) return FileText
-  return File
-}
-
-function getFileTypeLabel(type: string): string {
-  if (type.includes('spreadsheet') || type.includes('excel') || type.includes('.xls')) return 'Excel'
-  if (type.includes('presentation') || type.includes('powerpoint') || type.includes('.ppt')) return 'PowerPoint'
-  if (type.includes('word') || type.includes('.doc')) return 'Word'
-  if (type.includes('pdf')) return 'PDF'
-  if (type.includes('image/jpeg') || type.includes('image/jpg')) return 'JPG'
-  if (type.includes('image/png')) return 'PNG'
-  if (type.includes('image/heic')) return 'HEIC'
-  return type.split('/').pop()?.toUpperCase() || 'ファイル'
-}
-
-const CATEGORY_OPTIONS: { value: DataCategory; label: string; icon: typeof Building2; color: string }[] = [
-  { value: 'application', label: '入居申込', icon: FileText, color: 'text-purple-600 bg-purple-50' },
-  { value: 'property', label: '物件データ', icon: Building2, color: 'text-blue-600 bg-blue-50' },
-  { value: 'contract', label: '契約', icon: FileCheck, color: 'text-teal-600 bg-teal-50' },
-  { value: 'tenant', label: '入居者', icon: Users, color: 'text-green-600 bg-green-50' },
-  { value: 'repair', label: '修繕', icon: Wrench, color: 'text-amber-600 bg-amber-50' },
-  { value: 'other', label: 'その他', icon: FolderOpen, color: 'text-gray-600 bg-gray-50' },
+const DEMO_BANK_BALANCES: BankAccountBalance[] = [
+  { account_id: '1', company_name: '\u6797\u5efa\u8a2d\u682a\u5f0f\u4f1a\u793e', bank_name: '\u4e09\u4e95\u4f4f\u53cb\u9280\u884c', branch_name: '\u5927\u962a\u4e2d\u592e\u652f\u5e97', account_number_masked: '****4567', current_balance: 15800000 },
+  { account_id: '2', company_name: '\u6797\u5efa\u8a2d\u682a\u5f0f\u4f1a\u793e', bank_name: '\u308a\u305d\u306a\u9280\u884c', branch_name: '\u672c\u753a\u652f\u5e97', account_number_masked: '****5678', current_balance: 8200000 },
+  { account_id: '3', company_name: 'N\u30fbY\u30b3\u30fc\u30dd\u30ec\u30fc\u30b7\u30e7\u30f3', bank_name: '\u4e09\u83f1UFJ\u9280\u884c', branch_name: '\u6885\u7530\u652f\u5e97', account_number_masked: '****6789', current_balance: 12500000 },
+  { account_id: '4', company_name: '\u682a\u5f0f\u4f1a\u793e\u30aa\u30fc\u30ca\u30fc\u30ba', bank_name: '\u95a2\u897f\u307f\u3089\u3044\u9280\u884c', branch_name: '\u5929\u738b\u5bfa\u652f\u5e97', account_number_masked: '****7890', current_balance: 3200000 },
+  { account_id: '5', company_name: '\u682a\u5f0f\u4f1a\u793e\u7167', bank_name: '\u4e09\u4e95\u4f4f\u53cb\u9280\u884c', branch_name: '\u96e3\u6ce2\u652f\u5e97', account_number_masked: '****8901', current_balance: 6700000 },
+  { account_id: '6', company_name: '\u682a\u5f0f\u4f1a\u793eA', bank_name: '\u6c60\u7530\u6cc9\u5dde\u9280\u884c', branch_name: '\u5832\u652f\u5e97', account_number_masked: '****9012', current_balance: 2100000 },
 ]
 
-// Store raw files for OCR retry
-const rawFileStore = new Map<string, File>()
+const DEMO_REPAYMENT_SCHEDULE: RepaymentSchedule[] = [
+  { id: '1', company_name: '\u6797\u5efa\u8a2d\u682a\u5f0f\u4f1a\u793e', lender_name: '\u4e09\u4e95\u4f4f\u53cb\u9280\u884c', monthly_repayment_amount: 500000, withdrawal_day: 27, next_withdrawal_date: '2026-04-27', account_balance: 15800000, is_at_risk: false },
+  { id: '2', company_name: '\u6797\u5efa\u8a2d\u682a\u5f0f\u4f1a\u793e', lender_name: '\u308a\u305d\u306a\u9280\u884c', monthly_repayment_amount: 350000, withdrawal_day: 25, next_withdrawal_date: '2026-04-25', account_balance: 8200000, is_at_risk: false },
+  { id: '3', company_name: 'N\u30fbY\u30b3\u30fc\u30dd\u30ec\u30fc\u30b7\u30e7\u30f3', lender_name: '\u4e09\u83f1UFJ\u9280\u884c', monthly_repayment_amount: 800000, withdrawal_day: 10, next_withdrawal_date: '2026-05-10', account_balance: 12500000, is_at_risk: false },
+  { id: '4', company_name: '\u682a\u5f0f\u4f1a\u793e\u30aa\u30fc\u30ca\u30fc\u30ba', lender_name: '\u65e5\u672c\u653f\u7b56\u91d1\u878d\u516c\u5eab', monthly_repayment_amount: 200000, withdrawal_day: 15, next_withdrawal_date: '2026-04-15', account_balance: 3200000, is_at_risk: false },
+  { id: '5', company_name: '\u682a\u5f0f\u4f1a\u793e\u7167', lender_name: '\u4e09\u4e95\u4f4f\u53cb\u9280\u884c', monthly_repayment_amount: 450000, withdrawal_day: 27, next_withdrawal_date: '2026-04-27', account_balance: 6700000, is_at_risk: false },
+]
 
-function suggestCategory(fileName: string): DataCategory {
-  const lower = fileName.toLowerCase()
-  if (lower.includes('申込') || lower.includes('application') || lower.includes('入居')) return 'application'
-  if (lower.includes('物件') || lower.includes('property') || lower.includes('建物')) return 'property'
-  if (lower.includes('契約') || lower.includes('contract')) return 'contract'
-  if (lower.includes('修繕') || lower.includes('repair')) return 'repair'
-  if (lower.includes('.xls')) return 'property'
-  return 'application'
+const daysUntilDate = (dateStr: string) => Math.ceil((new Date(dateStr).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
+
+interface ExpiringContract { id: string; title: string; company_name: string; contract_end_date: string; days_remaining: number }
+interface RecentUpload { id: string; file_name: string; created_at: string; status: string }
+
+const DEMO_EXPIRING_CONTRACTS: ExpiringContract[] = [
+  { id: '3', title: 'NY\u30b3\u30fc\u30dd \u4fdd\u8a3c\u4f1a\u793e\u5951\u7d04', company_name: 'N\u30fbY\u30b3\u30fc\u30dd\u30ec\u30fc\u30b7\u30e7\u30f3\u682a\u5f0f\u4f1a\u793e', contract_end_date: '2026-05-31', days_remaining: daysUntilDate('2026-05-31') },
+  { id: '1', title: '\u6797\u5efa\u8a2d \u8cc3\u8cb8\u501f\u5951\u7d04\u66f8 101\u53f7\u5ba4', company_name: '\u6797\u5efa\u8a2d\u682a\u5f0f\u4f1a\u793e', contract_end_date: '2026-08-31', days_remaining: daysUntilDate('2026-08-31') },
+  { id: '4', title: '\u30aa\u30fc\u30ca\u30fc\u30ba \u4e8b\u52d9\u6240\u8cc3\u8cb8\u5951\u7d04', company_name: '\u682a\u5f0f\u4f1a\u793e\u30aa\u30fc\u30ca\u30fc\u30ba', contract_end_date: '2027-03-31', days_remaining: daysUntilDate('2027-03-31') },
+]
+
+const DEMO_RECENT_UPLOADS: RecentUpload[] = [
+  { id: '1', file_name: '\u901a\u5e33_\u6797\u5efa\u8a2d_202604.pdf', created_at: '2026-04-08', status: 'confirmed' },
+  { id: '2', file_name: '\u9818\u53ce\u66f8_\u4fee\u7e55\u5de5\u4e8b.jpg', created_at: '2026-04-06', status: 'review_pending' },
+  { id: '3', file_name: '\u5165\u5c45\u5951\u7d04\u66f8_\u4f50\u85e4.pdf', created_at: '2026-04-04', status: 'extracted' },
+]
+
+const UPLOAD_STATUS_LABELS: Record<string, string> = {
+  uploaded: '\u53d6\u8fbc\u6e08', processing: '\u51e6\u7406\u4e2d', extracted: '\u62bd\u51fa\u6e08',
+  review_pending: '\u78ba\u8a8d\u5f85\u3061', confirmed: '\u78ba\u5b9a\u6e08', error: '\u30a8\u30e9\u30fc',
 }
 
-const defaultStats: DashboardStats = { total_properties: 0, total_units: 0, occupied_units: 0, vacant_units: 0, pending_applications: 0, contracts_this_month: 0, arrears_count: 0, active_repairs: 0 }
-const defaultAlerts: DashboardAlerts = { ocr_unconfirmed: 0, mapping_unconfirmed: 0, contracts_not_created: 0, payments_unconfirmed: 0, arrears_count: 0, repairs_incomplete: 0, new_templates_detected: 0 }
+interface PanelItem {
+  label: string
+  icon: React.ComponentType<{ className?: string }>
+  path: string
+  description: string
+}
 
-// ============================================
-// Document Detail Sub-component
-// ============================================
-function DocumentDetail({
-  doc, onUpdateField, onAddField, onSetCategory, onConfirmCategory, onRetry,
-}: {
-  doc: OcrDocument
-  onUpdateField: (docId: string, fieldId: string, value: string) => void
-  onAddField: (docId: string, label: string, value: string) => void
-  onSetCategory: (docId: string, category: DataCategory) => void
-  onConfirmCategory: (docId: string) => void
-  onRetry: (docId: string) => void
-}) {
-  const [editingField, setEditingField] = useState<string | null>(null)
-  const [addFieldMode, setAddFieldMode] = useState(false)
-  const [newFieldLabel, setNewFieldLabel] = useState('')
-  const [newFieldValue, setNewFieldValue] = useState('')
+const PANEL_ITEMS: PanelItem[] = [
+  { label: '\u5bb6\u8cc3\u8acb\u6c42\u7ba1\u7406', icon: Banknote, path: '/charges', description: '\u6708\u6b21\u8acb\u6c42\u306e\u7ba1\u7406' },
+  { label: '\u5165\u91d1\u7ba1\u7406', icon: CreditCard, path: '/payments', description: '\u5165\u91d1\u7167\u5408\u30fb\u7ba1\u7406' },
+  { label: '\u672a\u53ce\u30fb\u6ede\u7d0d\u7ba1\u7406', icon: AlertTriangle, path: '/arrears-mgmt', description: '\u672a\u53ce\u91d1\u306e\u8ffd\u8de1' },
+  { label: '\u7d4c\u8cbb\u7ba1\u7406', icon: Receipt, path: '/expenses', description: '\u7d4c\u8cbb\u306e\u8a18\u9332\u30fb\u7ba1\u7406' },
+  { label: '\u7d66\u4e0e\u7ba1\u7406', icon: Wallet, path: '/payroll', description: '\u7d66\u4e0e\u8a08\u7b97\u30fb\u652f\u6255\u3044' },
+  { label: '\u8fd4\u6e08\u7ba1\u7406', icon: CalendarClock, path: '/loan-repayments', description: '\u501f\u5165\u8fd4\u6e08\u4e88\u5b9a' },
+  { label: '\u9280\u884c\u53d6\u5f15', icon: ArrowLeftRight, path: '/bank-transactions', description: '\u5165\u51fa\u91d1\u660e\u7d30' },
+  { label: '\u8cc7\u91d1\u79fb\u52d5', icon: Send, path: '/fund-transfers', description: '\u53e3\u5ea7\u9593\u306e\u632f\u66ff' },
+  { label: '\u66f8\u985e\u7ba1\u7406', icon: FileText, path: '/documents', description: '\u5951\u7d04\u66f8\u30fb\u66f8\u985e' },
+  { label: '\u66f4\u65b0\u671f\u9650', icon: Bell, path: '/document-alerts', description: '\u671f\u9650\u30a2\u30e9\u30fc\u30c8' },
+  { label: '\u53d6\u8fbc\u78ba\u8a8d', icon: ClipboardCheck, path: '/import-review', description: '\u53d6\u8fbc\u30c7\u30fc\u30bf\u78ba\u8a8d' },
+  { label: '\u53d6\u8fbc\u5c65\u6b74', icon: History, path: '/import-history', description: '\u904e\u53bb\u306e\u53d6\u8fbc\u8a18\u9332' },
+  { label: '\u6708\u6b21\u53ce\u652f', icon: BarChart3, path: '/monthly-income-expense', description: '\u6708\u6b21P&L' },
+  { label: '\u4f1a\u793e\u7ba1\u7406', icon: Building2, path: '/companies', description: '\u30de\u30b9\u30bf\u7ba1\u7406' },
+  { label: '\u7269\u4ef6\u7ba1\u7406', icon: Home, path: '/properties-mgmt', description: '\u7269\u4ef6\u60c5\u5831' },
+  { label: '\u90e8\u5c4b\u7ba1\u7406', icon: DoorOpen, path: '/rooms', description: '\u90e8\u5c4b\u60c5\u5831' },
+  { label: '\u5165\u5c45\u8005\u7ba1\u7406', icon: Users, path: '/tenants-mgmt', description: '\u5165\u5c45\u8005\u60c5\u5831' },
+  { label: '\u5f93\u696d\u54e1\u7ba1\u7406', icon: UserCog, path: '/employees', description: '\u5f93\u696d\u54e1\u30de\u30b9\u30bf' },
+  { label: '\u9280\u884c\u53e3\u5ea7', icon: Landmark, path: '/bank-accounts', description: '\u53e3\u5ea7\u30de\u30b9\u30bf' },
+  { label: '\u7d4c\u8cbb\u30ab\u30c6\u30b4\u30ea', icon: FolderOpen, path: '/expense-categories', description: '\u30ab\u30c6\u30b4\u30ea\u7ba1\u7406' },
+  { label: '\u66f8\u985e\u30ab\u30c6\u30b4\u30ea', icon: FolderOpen, path: '/document-categories', description: '\u30ab\u30c6\u30b4\u30ea\u7ba1\u7406' },
+]
 
-  const isProcessing = doc.file.status === 'uploading' || doc.file.status === 'processing'
-  const isFailed = doc.file.status === 'failed'
-  const isCompleted = doc.file.status === 'completed'
-
-  const autoCount = doc.fields.filter(f => f.confidence >= 0.8).length
-  const lowConfCount = doc.fields.filter(f => f.confidence < 0.8 && f.confidence >= 0.5).length
-  const unreadableCount = doc.fields.filter(f => f.status === 'unreadable' || f.confidence < 0.5).length
-
+function StatCard({ title, value, icon, description, variant }: { title: string; value: string; icon: React.ReactNode; description?: string; variant?: 'danger' }) {
   return (
-    <Card>
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle className="text-base">{doc.file.name}</CardTitle>
-            <p className="text-xs text-muted-foreground mt-1">
-              {getFileTypeLabel(doc.file.type)} • {(doc.file.size / 1024).toFixed(0)} KB
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            {isFailed && (
-              <Button variant="outline" size="sm" onClick={() => onRetry(doc.id)}>
-                <RotateCcw className="mr-1 h-3 w-3" />再実行
-              </Button>
-            )}
-            {isCompleted && !doc.categoryConfirmed && doc.category && (
-              <Button size="sm" onClick={() => onConfirmCategory(doc.id)}>
-                <CheckCircle2 className="mr-1 h-3 w-3" />確定して仕分け
-              </Button>
-            )}
-            {doc.categoryConfirmed && (
-              <Badge variant="success">
-                <CheckCircle2 className="mr-1 h-3 w-3" />仕分け確定済
-              </Badge>
-            )}
-          </div>
-        </div>
-      </CardHeader>
-      <CardContent>
-        {isProcessing && (
-          <div className="flex flex-col items-center py-12 gap-4">
-            <Loader2 className="h-10 w-10 animate-spin text-primary" />
-            <div className="text-center">
-              <p className="font-medium">
-                {doc.file.status === 'uploading' ? 'アップロード中...' : 'OCR処理中...'}
-              </p>
-              <p className="text-sm text-muted-foreground mt-1">
-                {doc.file.status === 'uploading'
-                  ? `${doc.file.progress}% 完了`
-                  : 'テキストを抽出しています。しばらくお待ちください。'
-                }
-              </p>
-            </div>
-            {doc.file.status === 'uploading' && (
-              <Progress value={doc.file.progress} className="w-48" />
-            )}
-          </div>
-        )}
-
-        {isFailed && (
-          <div className="flex flex-col items-center py-12 gap-4">
-            <XCircle className="h-10 w-10 text-destructive" />
-            <div className="text-center">
-              <p className="font-medium text-destructive">OCR処理に失敗しました</p>
-              <p className="text-sm text-muted-foreground mt-1">ファイル形式を確認し、再実行してください。</p>
-            </div>
-          </div>
-        )}
-
-        {isCompleted && (
-          <div className="space-y-4">
-            <div className="p-4 rounded-lg bg-muted/30 border">
-              <Label className="text-sm font-medium mb-2 block">データ分類</Label>
-              <div className="flex flex-wrap gap-2">
-                {CATEGORY_OPTIONS.map((cat) => {
-                  const isSelected = doc.category === cat.value
-                  return (
-                    <button
-                      key={cat.value}
-                      className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-sm transition-all ${
-                        isSelected
-                          ? 'border-primary bg-primary/10 text-primary font-medium'
-                          : 'border-transparent bg-muted hover:bg-muted/80'
-                      }`}
-                      onClick={() => onSetCategory(doc.id, cat.value)}
-                      disabled={doc.categoryConfirmed}
-                    >
-                      <cat.icon className="h-4 w-4" />
-                      {cat.label}
-                      {doc.suggestedCategory === cat.value && !isSelected && (
-                        <span className="text-xs text-muted-foreground">(推奨)</span>
-                      )}
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
-
-            <div className="flex gap-3">
-              <div className="flex items-center gap-1.5 text-xs">
-                <div className="h-2 w-2 rounded-full bg-green-500" />
-                <span>自動確定: {autoCount}</span>
-              </div>
-              <div className="flex items-center gap-1.5 text-xs">
-                <div className="h-2 w-2 rounded-full bg-yellow-500" />
-                <span>要確認: {lowConfCount}</span>
-              </div>
-              <div className="flex items-center gap-1.5 text-xs">
-                <div className="h-2 w-2 rounded-full bg-red-500" />
-                <span>読取不可: {unreadableCount}</span>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              {doc.fields.map((field) => {
-                const isEditing = editingField === field.id
-                const confidenceColor = field.confidence >= 0.8 ? 'text-green-600' :
-                  field.confidence >= 0.5 ? 'text-yellow-600' : 'text-red-600'
-                const confidenceBg = field.confidence >= 0.8 ? 'bg-green-50 border-green-200' :
-                  field.confidence >= 0.5 ? 'bg-yellow-50 border-yellow-200' : 'bg-red-50 border-red-200'
-
-                return (
-                  <div key={field.id} className={`flex items-start gap-3 p-3 rounded-lg border transition-all ${
-                    field.status === 'corrected' ? 'bg-blue-50/50 border-blue-200' :
-                    field.status === 'manual' ? 'bg-purple-50/50 border-purple-200' :
-                    confidenceBg
-                  }`}>
-                    <div className="shrink-0 mt-1">
-                      {field.status === 'manual' ? (
-                        <Edit3 className="h-4 w-4 text-purple-500" />
-                      ) : field.confidence >= 0.8 ? (
-                        <CheckCircle2 className="h-4 w-4 text-green-500" />
-                      ) : field.confidence >= 0.5 ? (
-                        <AlertTriangle className="h-4 w-4 text-yellow-500" />
-                      ) : (
-                        <XCircle className="h-4 w-4 text-red-500" />
-                      )}
-                    </div>
-
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <Label className="text-xs font-medium text-muted-foreground">{field.label}</Label>
-                        {field.status !== 'manual' && (
-                          <span className={`text-xs ${confidenceColor}`}>
-                            {Math.round(field.confidence * 100)}%
-                          </span>
-                        )}
-                        {field.status === 'corrected' && (
-                          <Badge variant="info" className="text-xs px-1 py-0">修正済</Badge>
-                        )}
-                        {field.status === 'manual' && (
-                          <Badge variant="secondary" className="text-xs px-1 py-0">手入力</Badge>
-                        )}
-                      </div>
-                      {isEditing ? (
-                        <Input
-                          className="h-8 text-sm"
-                          defaultValue={field.value}
-                          autoFocus
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
-                              onUpdateField(doc.id, field.id, (e.target as HTMLInputElement).value)
-                              setEditingField(null)
-                            }
-                            if (e.key === 'Escape') setEditingField(null)
-                          }}
-                          onBlur={(e) => {
-                            onUpdateField(doc.id, field.id, e.target.value)
-                            setEditingField(null)
-                          }}
-                        />
-                      ) : (
-                        <p className="text-sm font-medium">{field.value || '（空欄）'}</p>
-                      )}
-                      {field.status === 'unreadable' && field.originalValue !== field.value && (
-                        <p className="text-xs text-muted-foreground mt-0.5">OCR原文: {field.originalValue}</p>
-                      )}
-                    </div>
-
-                    {!doc.categoryConfirmed && (
-                      <div className="shrink-0 flex gap-1">
-                        <button
-                          className="p-1.5 rounded hover:bg-background text-muted-foreground hover:text-foreground"
-                          title="編集"
-                          onClick={() => setEditingField(isEditing ? null : field.id)}
-                        >
-                          <Edit3 className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                )
-              })}
-
-              {!doc.categoryConfirmed && (
-                <div className="pt-2">
-                  {addFieldMode ? (
-                    <div className="p-3 rounded-lg border border-dashed bg-muted/20 space-y-2">
-                      <div className="grid grid-cols-2 gap-2">
-                        <Input placeholder="項目名" className="h-8 text-sm" value={newFieldLabel} onChange={(e) => setNewFieldLabel(e.target.value)} />
-                        <Input placeholder="値" className="h-8 text-sm" value={newFieldValue} onChange={(e) => setNewFieldValue(e.target.value)} />
-                      </div>
-                      <div className="flex gap-2">
-                        <Button size="sm" className="h-7 text-xs" onClick={() => {
-                          if (newFieldLabel) {
-                            onAddField(doc.id, newFieldLabel, newFieldValue)
-                            setNewFieldLabel('')
-                            setNewFieldValue('')
-                            setAddFieldMode(false)
-                          }
-                        }}>追加</Button>
-                        <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => {
-                          setAddFieldMode(false)
-                          setNewFieldLabel('')
-                          setNewFieldValue('')
-                        }}>キャンセル</Button>
-                      </div>
-                    </div>
-                  ) : (
-                    <button
-                      className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
-                      onClick={() => setAddFieldMode(true)}
-                    >
-                      <Plus className="h-3.5 w-3.5" />
-                      手入力で項目を追加
-                    </button>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-        )}
+    <Card className={variant === 'danger' ? 'border-red-200' : ''}>
+      <CardContent className="pt-4 pb-3 px-4">
+        <div className="flex items-center gap-2 text-muted-foreground mb-1">{icon}<span className="text-xs">{title}</span></div>
+        <p className={`text-lg font-bold ${variant === 'danger' ? 'text-red-600' : ''}`}>{value}</p>
+        {description && <p className="text-xs text-muted-foreground mt-0.5">{description}</p>}
       </CardContent>
     </Card>
   )
 }
 
-function getCategoryLink(category: DataCategory | null): string {
-  switch (category) {
-    case 'application': return '/applications'
-    case 'property': return '/properties'
-    case 'contract': return '/contracts'
-    case 'tenant': return '/tenants'
-    case 'repair': return '/repairs'
-    default: return '/documents'
-  }
-}
-
-// ============================================
-// Main Dashboard Component
-// ============================================
 export function DashboardPage() {
-  const { user } = useAuthStore()
-  const { stats: dbStats, alerts: dbAlerts, loading: statsLoading } = useDashboardStats()
-  const { data: recentApps } = useApplications()
-  const stats = statsLoading ? defaultStats : dbStats
-  const alerts = statsLoading ? defaultAlerts : dbAlerts
-  const [documents, setDocuments] = useState<OcrDocument[]>([])
-  const [activeDocId, setActiveDocId] = useState<string | null>(null)
-  const [isDragging, setIsDragging] = useState(false)
-  const [showKpi, setShowKpi] = useState(false)
-  const [ocrError, setOcrError] = useState<string | null>(null)
+  const navigate = useNavigate()
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const [loading, setLoading] = useState(true)
+  const [isDragging, setIsDragging] = useState(false)
 
-  useEffect(() => { document.title = 'ダッシュボード - RS不動産管理' }, [])
+  const [bankBalances, setBankBalances] = useState<BankAccountBalance[]>([])
+  const [repaymentSchedule, setRepaymentSchedule] = useState<RepaymentSchedule[]>([])
+  const [arrearsCount, setArrearsCount] = useState(0)
+  const [arrearsTotal, setArrearsTotal] = useState(0)
+  const [expenseTotal, setExpenseTotal] = useState(0)
+  const [payrollTotal, setPayrollTotal] = useState(0)
+  const [expiringContracts, setExpiringContracts] = useState<ExpiringContract[]>([])
+  const [recentUploads, setRecentUploads] = useState<RecentUpload[]>([])
+  const [pendingImports, setPendingImports] = useState(0)
 
-  const activeDoc = documents.find(d => d.id === activeDocId) || null
-
-  const processFileWithOcr = useCallback(async (docId: string, file: File, suggested: DataCategory) => {
-    setOcrError(null)
+  const fetchData = useCallback(async () => {
+    setLoading(true)
+    if (isDemoMode) {
+      setBankBalances(DEMO_BANK_BALANCES)
+      setRepaymentSchedule(DEMO_REPAYMENT_SCHEDULE)
+      setArrearsCount(8)
+      setArrearsTotal(580000)
+      setExpenseTotal(637500)
+      setPayrollTotal(1377000)
+      setExpiringContracts(DEMO_EXPIRING_CONTRACTS)
+      setRecentUploads(DEMO_RECENT_UPLOADS)
+      setPendingImports(2)
+      setLoading(false)
+      return
+    }
     try {
-      // Upload to Supabase Storage
-      const companyId = user?.company_id || '00000000-0000-0000-0000-000000000001'
-      const filePath = `ocr/${companyId}/${Date.now()}-${file.name}`
-      try {
-        await uploadFile('documents', filePath, file)
-      } catch {
-        // Storage upload is optional, continue with OCR
-      }
+      const [
+        { data: companiesData },
+        { data: arrearsData },
+        { data: bankAccts },
+        { data: loans },
+        { data: expenses },
+        { data: payrolls },
+      ] = await Promise.all([
+        supabase.from('companies').select('id, name').is('deleted_at', null),
+        supabase.from('arrears_records').select('arrears_amount').is('deleted_at', null).in('status', ['outstanding', 'partially_paid']),
+        supabase.from('bank_accounts').select('id, company_id, bank_name, branch_name, account_number, current_balance').is('deleted_at', null),
+        supabase.from('loan_repayments').select('id, company_id, bank_account_id, lender_name, monthly_repayment_amount, withdrawal_day, next_withdrawal_date').is('deleted_at', null).eq('status', 'scheduled'),
+        supabase.from('expense_records').select('amount').is('deleted_at', null),
+        supabase.from('payroll_records').select('net_payment').is('deleted_at', null),
+      ])
 
-      setDocuments(prev => prev.map(d =>
-        d.id === docId ? { ...d, file: { ...d.file, progress: 100, status: 'processing' } } : d
-      ))
+      const companyMap = Object.fromEntries((companiesData || []).map((c: Record<string, string>) => [c.id, c.name]))
+      const accountMap = Object.fromEntries((bankAccts || []).map((a: Record<string, string | number>) => [a.id, a]))
 
-      // Create OCR job in Supabase
-      let ocrJobId: string | null = null
-      try {
-        const ocrJob = await createOcrJob({ company_id: companyId, file_path: filePath, file_name: file.name, file_type: file.type || 'application/octet-stream' })
-        ocrJobId = ocrJob.id
-      } catch {
-        // OCR job tracking is optional
-      }
+      setArrearsCount((arrearsData || []).length)
+      setArrearsTotal((arrearsData || []).reduce((s: number, a: Record<string, number>) => s + Number(a.arrears_amount), 0))
 
-      // Run Google Cloud Vision OCR
-      if (!isOcrAvailable()) {
-        throw new Error('Google Cloud Vision APIキーが設定されていません')
-      }
-      const result = await runOcr(file)
+      setBankBalances((bankAccts || []).map((a: Record<string, string | number>) => ({
+        account_id: String(a.id), company_name: companyMap[a.company_id as string] || '',
+        bank_name: String(a.bank_name), branch_name: String(a.branch_name || ''),
+        account_number_masked: maskAccountNumber(String(a.account_number)), current_balance: Number(a.current_balance),
+      })))
 
-      // Map OCR result fields to ExtractedField format
-      const extractedFields: ExtractedField[] = result.fields.map(f => ({
-        id: f.id,
-        label: f.label,
-        value: f.value,
-        confidence: f.confidence,
-        status: f.status === 'unreadable' ? 'unreadable' as const : 'auto' as const,
-        originalValue: f.originalValue,
+      setRepaymentSchedule((loans || []).map((l: Record<string, string | number>) => {
+        const acctBalance = Number((accountMap[l.bank_account_id as string] as Record<string, number>)?.current_balance) || 0
+        return {
+          id: String(l.id), company_name: companyMap[l.company_id as string] || '',
+          lender_name: String(l.lender_name), monthly_repayment_amount: Number(l.monthly_repayment_amount),
+          withdrawal_day: Number(l.withdrawal_day), next_withdrawal_date: String(l.next_withdrawal_date || ''),
+          account_balance: acctBalance, is_at_risk: acctBalance > 0 && acctBalance < Number(l.monthly_repayment_amount) * 2,
+        }
       }))
 
-      // Update OCR job as completed
-      if (ocrJobId) {
-        try {
-          await updateOcrJob(ocrJobId, { status: 'completed', ocr_raw_result: { fullText: result.fullText } as Record<string, unknown> })
-          await saveOcrExtractedFields(ocrJobId, result.fields.map(f => ({
-            ocr_label: f.label,
-            ocr_value: f.value,
-            confidence_score: f.confidence,
-            status: f.confidence >= 0.8 ? 'auto_confirmed' as const : f.confidence >= 0.5 ? 'candidate' as const : 'needs_review' as const,
-          })))
-        } catch {
-          // Saving to DB is optional
-        }
-      }
+      setExpenseTotal((expenses || []).reduce((s: number, e: Record<string, number>) => s + Number(e.amount), 0))
+      setPayrollTotal((payrolls || []).reduce((s: number, p: Record<string, number>) => s + Number(p.net_payment), 0))
 
-      setDocuments(prev => prev.map(d =>
-        d.id === docId ? { ...d, file: { ...d.file, status: 'completed' }, fields: extractedFields, category: suggested } : d
-      ))
+      const [{ data: expiringDocs }, { data: recentFiles }, { count: pendingCount }] = await Promise.all([
+        supabase.from('documents').select('id, title, company_id, contract_end_date').is('deleted_at', null).not('contract_end_date', 'is', null).order('contract_end_date', { ascending: true }).limit(5),
+        supabase.from('uploaded_files').select('id, file_name, created_at, status').order('created_at', { ascending: false }).limit(5),
+        supabase.from('extracted_data_candidates').select('*', { count: 'exact', head: true }).eq('review_status', 'pending'),
+      ])
+
+      const today = new Date()
+      setExpiringContracts((expiringDocs || []).map((d: Record<string, string>) => {
+        const endDate = new Date(d.contract_end_date)
+        const daysRemaining = Math.ceil((endDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
+        return { id: d.id, title: d.title, company_name: companyMap[d.company_id] || '', contract_end_date: d.contract_end_date, days_remaining: daysRemaining }
+      }))
+      setRecentUploads((recentFiles || []).map((f: Record<string, string>) => ({ id: f.id, file_name: f.file_name, created_at: f.created_at, status: f.status })))
+      setPendingImports(pendingCount || 0)
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'OCR処理に失敗しました'
-      setOcrError(msg)
-      setDocuments(prev => prev.map(d =>
-        d.id === docId ? { ...d, file: { ...d.file, status: 'failed' } } : d
-      ))
+      console.error('Dashboard fetch error:', err)
     }
-  }, [user])
-
-  const handleFiles = useCallback((files: FileList | File[]) => {
-    const fileArray = Array.from(files)
-    const newDocs: OcrDocument[] = fileArray.map((file, i) => {
-      const id = `doc-${Date.now()}-${i}`
-      const suggested = suggestCategory(file.name)
-      rawFileStore.set(id, file)
-      return {
-        id,
-        file: {
-          id: `file-${Date.now()}-${i}`,
-          name: file.name,
-          type: file.type || 'application/octet-stream',
-          size: file.size,
-          status: 'uploading' as FileStatus,
-          progress: 0,
-          uploadedAt: new Date().toISOString(),
-        },
-        fields: [],
-        category: null,
-        categoryConfirmed: false,
-        suggestedCategory: suggested,
-      }
-    })
-
-    setDocuments(prev => [...newDocs, ...prev])
-    if (newDocs.length > 0) setActiveDocId(newDocs[0].id)
-
-    // Process each file with real OCR
-    fileArray.forEach((file, i) => {
-      const docId = newDocs[i].id
-      const suggested = newDocs[i].suggestedCategory
-      processFileWithOcr(docId, file, suggested)
-    })
-  }, [processFileWithOcr])
-
-  const handleDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault()
-    setIsDragging(false)
-    if (e.dataTransfer.files.length > 0) handleFiles(e.dataTransfer.files)
-  }, [handleFiles])
-
-  const handleDragOver = useCallback((e: React.DragEvent) => {
-    e.preventDefault()
-    setIsDragging(true)
+    setLoading(false)
   }, [])
 
-  const handleDragLeave = useCallback((e: React.DragEvent) => {
-    e.preventDefault()
-    setIsDragging(false)
-  }, [])
+  useEffect(() => { fetchData() }, [fetchData])
 
-  const updateField = (docId: string, fieldId: string, newValue: string) => {
-    setDocuments(prev => prev.map(d =>
-      d.id === docId ? {
-        ...d,
-        fields: d.fields.map(f =>
-          f.id === fieldId ? { ...f, value: newValue, status: newValue !== f.originalValue ? 'corrected' as const : 'auto' as const } : f
-        )
-      } : d
-    ))
+  const handleDragOver = (e: React.DragEvent) => { e.preventDefault(); setIsDragging(true) }
+  const handleDragLeave = () => setIsDragging(false)
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault(); setIsDragging(false)
+    if (e.dataTransfer.files.length > 0) navigate('/file-upload', { state: { droppedFiles: Array.from(e.dataTransfer.files) } })
+  }
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) navigate('/file-upload', { state: { droppedFiles: Array.from(e.target.files) } })
   }
 
-  const addField = (docId: string, label: string, value: string) => {
-    setDocuments(prev => prev.map(d =>
-      d.id === docId ? {
-        ...d,
-        fields: [...d.fields, {
-          id: `manual-${Date.now()}`,
-          label,
-          value,
-          confidence: 1,
-          status: 'manual' as const,
-          originalValue: '',
-        }]
-      } : d
-    ))
+  const chartData = Object.values(
+    bankBalances.reduce<Record<string, { name: string; balance: number }>>((acc, b) => {
+      const name = b.company_name.replace('\u682a\u5f0f\u4f1a\u793e', '(\u682a)').substring(0, 12)
+      if (!acc[b.company_name]) acc[b.company_name] = { name, balance: 0 }
+      acc[b.company_name].balance += b.current_balance
+      return acc
+    }, {})
+  )
+
+  if (loading) {
+    return <div className="flex justify-center py-24"><Loader2 className="h-8 w-8 animate-spin text-gray-400" /></div>
   }
-
-  const setCategory = (docId: string, category: DataCategory) => {
-    setDocuments(prev => prev.map(d =>
-      d.id === docId ? { ...d, category, categoryConfirmed: false } : d
-    ))
-  }
-
-  const confirmCategory = (docId: string) => {
-    setDocuments(prev => prev.map(d =>
-      d.id === docId ? { ...d, categoryConfirmed: true } : d
-    ))
-  }
-
-  const removeDocument = (docId: string) => {
-    rawFileStore.delete(docId)
-    setDocuments(prev => {
-      const remaining = prev.filter(d => d.id !== docId)
-      if (activeDocId === docId) {
-        setActiveDocId(remaining.length > 0 ? remaining[0].id : null)
-      }
-      return remaining
-    })
-  }
-
-  const retryOcr = (docId: string) => {
-    setDocuments(prev => prev.map(d =>
-      d.id === docId ? { ...d, file: { ...d.file, status: 'processing' as const }, fields: [] } : d
-    ))
-    const rawFile = rawFileStore.get(docId)
-    if (rawFile) {
-      const doc = documents.find(d => d.id === docId)
-      processFileWithOcr(docId, rawFile, doc?.suggestedCategory || 'application')
-    }
-  }
-
-  const kpiCards = [
-    { label: '管理物件数', value: stats.total_properties, icon: Building2, color: 'text-blue-600', bg: 'bg-blue-50' },
-    { label: '総戸数', value: stats.total_units, icon: DoorOpen, color: 'text-indigo-600', bg: 'bg-indigo-50' },
-    { label: '入居中', value: stats.occupied_units, icon: Users, color: 'text-green-600', bg: 'bg-green-50' },
-    { label: '空室数', value: stats.vacant_units, icon: DoorOpen, color: 'text-orange-600', bg: 'bg-orange-50' },
-    { label: '申込中', value: stats.pending_applications, icon: FileText, color: 'text-purple-600', bg: 'bg-purple-50' },
-    { label: '今月契約', value: stats.contracts_this_month, icon: FileCheck, color: 'text-teal-600', bg: 'bg-teal-50' },
-    { label: '未収件数', value: stats.arrears_count, icon: AlertTriangle, color: 'text-red-600', bg: 'bg-red-50' },
-    { label: '修繕対応中', value: stats.active_repairs, icon: Wrench, color: 'text-amber-600', bg: 'bg-amber-50' },
-  ]
-
-  const alertItems = [
-    { label: 'OCR未確認', count: alerts.ocr_unconfirmed, link: '/ocr-jobs', variant: 'warning' as const },
-    { label: 'マッピング未確定', count: alerts.mapping_unconfirmed, link: '/template-mappings', variant: 'warning' as const },
-    { label: '契約書未作成', count: alerts.contracts_not_created, link: '/contracts', variant: 'info' as const },
-    { label: '入金未確認', count: alerts.payments_unconfirmed, link: '/rent', variant: 'warning' as const },
-    { label: '滞納', count: alerts.arrears_count, link: '/arrears', variant: 'destructive' as const },
-    { label: '修繕未完了', count: alerts.repairs_incomplete, link: '/repairs', variant: 'secondary' as const },
-    { label: '新規帳票検出', count: alerts.new_templates_detected, link: '/template-mappings', variant: 'info' as const },
-  ]
-
-  const pendingDocs = documents.filter(d => !d.categoryConfirmed)
-  const confirmedDocs = documents.filter(d => d.categoryConfirmed)
 
   return (
-    <div>
-      <PageHeader title="ダッシュボード" description="書類取込・データ管理" />
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight">{'\u30c0\u30c3\u30b7\u30e5\u30dc\u30fc\u30c9'}</h1>
+        <p className="text-muted-foreground mt-1">{'\u30b0\u30eb\u30fc\u30d7\u5168\u4f53\u306e\u8cc7\u91d1\u7ba1\u7406\u30b5\u30de\u30ea\u30fc'}</p>
+      </div>
 
-      {/* SECTION 1: File Upload Zone */}
-      <Card className="mb-6">
-        <CardContent className="p-0">
+      {/* Section 1: File Import Area */}
+      <Card className={`border-2 border-dashed transition-colors ${isDragging ? 'border-blue-500 bg-blue-50' : 'border-gray-300 hover:border-blue-400'}`}>
+        <CardContent className="py-8">
           <div
-            className={`relative border-2 border-dashed rounded-lg p-8 text-center transition-all cursor-pointer ${
-              isDragging ? 'border-primary bg-primary/5 scale-[1.01]' : 'border-muted-foreground/25 hover:border-primary/50 hover:bg-muted/30'
-            }`}
-            onDrop={handleDrop}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+            className="flex flex-col items-center gap-3 cursor-pointer"
             onClick={() => fileInputRef.current?.click()}
           >
-            <input
-              ref={fileInputRef}
-              type="file"
-              multiple
-              accept={FILE_ACCEPT}
-              className="hidden"
-              onChange={(e) => { if (e.target.files) handleFiles(e.target.files); e.target.value = '' }}
-            />
-            <div className="flex flex-col items-center gap-3">
-              <div className="rounded-full bg-primary/10 p-4">
-                <Upload className="h-8 w-8 text-primary" />
-              </div>
-              <div>
-                <p className="text-lg font-semibold">書類をドラッグ＆ドロップ、またはクリックして選択</p>
-                <p className="text-sm text-muted-foreground mt-1">
-                  対応形式: PDF, Word (.doc/.docx), Excel (.xls/.xlsx), PowerPoint (.ppt/.pptx), 画像 (JPG/PNG/HEIC)
-                </p>
-              </div>
-              <div className="flex gap-3 mt-2">
-                {[
-                  { icon: FileText, label: 'PDF' },
-                  { icon: FileType, label: 'Word' },
-                  { icon: FileSpreadsheet, label: 'Excel' },
-                  { icon: Presentation, label: 'PPT' },
-                  { icon: File, label: '画像' },
-                ].map(ft => (
-                  <div key={ft.label} className="flex items-center gap-1 px-2 py-1 rounded bg-muted text-xs text-muted-foreground">
-                    <ft.icon className="h-3 w-3" />
-                    {ft.label}
-                  </div>
-                ))}
-              </div>
+            <Upload className={`h-12 w-12 ${isDragging ? 'text-blue-500' : 'text-gray-400'}`} />
+            <div className="text-center">
+              <p className="text-lg font-semibold">{isDragging ? '\u30d5\u30a1\u30a4\u30eb\u3092\u30c9\u30ed\u30c3\u30d7\u3057\u3066\u304f\u3060\u3055\u3044' : '\u30d5\u30a1\u30a4\u30eb\u53d6\u8fbc'}</p>
+              <p className="text-sm text-muted-foreground mt-1">{'\u30c9\u30e9\u30c3\u30b0&\u30c9\u30ed\u30c3\u30d7 \u307e\u305f\u306f \u30af\u30ea\u30c3\u30af\u3057\u3066\u30d5\u30a1\u30a4\u30eb\u3092\u9078\u629e'}</p>
+              <p className="text-xs text-muted-foreground mt-1">{'\u5bfe\u5fdc\u5f62\u5f0f: JPG, PNG, HEIF, PDF, Excel, Word'}</p>
+            </div>
+            <input ref={fileInputRef} type="file" className="hidden" accept={ALLOWED_FILE_EXTENSIONS} multiple onChange={handleFileSelect} />
+            <div className="flex gap-2 mt-2">
+              <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); navigate('/file-upload') }}>
+                <Upload className="h-4 w-4 mr-1" />{'\u30d5\u30a1\u30a4\u30eb\u53d6\u8fbc\u753b\u9762\u3078'}
+              </Button>
+              <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); navigate('/import-history') }}>
+                <History className="h-4 w-4 mr-1" />{'\u53d6\u8fbc\u5c65\u6b74'}
+              </Button>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {ocrError && (
-        <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700 flex items-center gap-2">
-          <XCircle className="h-4 w-4 shrink-0" />
-          <span>{ocrError}</span>
-          <button className="ml-auto text-xs underline" onClick={() => setOcrError(null)}>閉じる</button>
-        </div>
-      )}
+      {/* Section 2: Important KPIs */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+        <StatCard title={'\u9280\u884c\u7dcf\u6b8b\u9ad8'} value={formatCurrency(bankBalances.reduce((s, b) => s + b.current_balance, 0))} icon={<Landmark className="h-4 w-4" />} />
+        <StatCard title={'\u6708\u6b21\u8fd4\u6e08\u7dcf\u984d'} value={formatCurrency(repaymentSchedule.reduce((s, r) => s + r.monthly_repayment_amount, 0))} icon={<CalendarClock className="h-4 w-4" />} variant="danger" />
+        <StatCard title={'\u672a\u53ce\u7dcf\u984d'} value={formatCurrency(arrearsTotal)} icon={<AlertTriangle className="h-4 w-4" />} description={`${arrearsCount}\u4ef6`} variant="danger" />
+        <StatCard title={'\u78ba\u8a8d\u5f85\u3061\u53d6\u8fbc'} value={`${pendingImports}\u4ef6`} icon={<ClipboardCheck className="h-4 w-4" />} />
+        <StatCard title={'\u7d4c\u8cbb+\u7d66\u4e0e'} value={formatCurrency(expenseTotal + payrollTotal)} icon={<Receipt className="h-4 w-4" />} />
+      </div>
 
-      {/* SECTION 2: Processing Queue + Data Review */}
-      {documents.length > 0 && (
-        <div className="grid gap-6 lg:grid-cols-3 mb-6">
-          <div className="lg:col-span-1">
-            <Card>
-              <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-base">取込書類 ({documents.length})</CardTitle>
-                  {pendingDocs.length > 0 && (
-                    <Badge variant="warning">{pendingDocs.length}件未確定</Badge>
-                  )}
-                </div>
-              </CardHeader>
-              <CardContent className="p-0">
-                <div className="max-h-96 overflow-y-auto">
-                  {documents.map((doc) => {
-                    const Icon = getFileIcon(doc.file.type)
-                    const isActive = doc.id === activeDocId
-                    return (
-                      <div
-                        key={doc.id}
-                        className={`flex items-center gap-3 px-4 py-3 cursor-pointer border-b last:border-0 transition-colors ${
-                          isActive ? 'bg-primary/5 border-l-2 border-l-primary' : 'hover:bg-muted/50'
-                        }`}
-                        onClick={() => setActiveDocId(doc.id)}
-                      >
-                        <div className="shrink-0">
-                          <Icon className="h-5 w-5 text-muted-foreground" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium truncate">{doc.file.name}</p>
-                          <div className="flex items-center gap-2 mt-0.5">
-                            <span className="text-xs text-muted-foreground">{getFileTypeLabel(doc.file.type)}</span>
-                            {doc.file.status === 'uploading' && (
-                              <Progress value={doc.file.progress} className="h-1 w-16" />
-                            )}
-                            {doc.file.status === 'processing' && (
-                              <span className="flex items-center gap-1 text-xs text-blue-600">
-                                <Loader2 className="h-3 w-3 animate-spin" />OCR処理中
-                              </span>
-                            )}
-                            {doc.file.status === 'completed' && !doc.categoryConfirmed && (
-                              <Badge variant="warning" className="text-xs px-1.5 py-0">要確認</Badge>
-                            )}
-                            {doc.categoryConfirmed && (
-                              <Badge variant="success" className="text-xs px-1.5 py-0">確定済</Badge>
-                            )}
-                            {doc.file.status === 'failed' && (
-                              <Badge variant="destructive" className="text-xs px-1.5 py-0">失敗</Badge>
-                            )}
-                          </div>
-                        </div>
-                        <button
-                          className="shrink-0 p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive"
-                          onClick={(e) => { e.stopPropagation(); removeDocument(doc.id) }}
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
-                    )
-                  })}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          <div className="lg:col-span-2">
-            {activeDoc ? (
-              <DocumentDetail
-                doc={activeDoc}
-                onUpdateField={updateField}
-                onAddField={addField}
-                onSetCategory={setCategory}
-                onConfirmCategory={confirmCategory}
-                onRetry={retryOcr}
-              />
-            ) : (
-              <Card>
-                <CardContent className="p-12 text-center">
-                  <ScanLine className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
-                  <p className="text-muted-foreground">左の一覧から書類を選択してください</p>
-                </CardContent>
-              </Card>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* SECTION 3: Confirmed Data Summary */}
-      {confirmedDocs.length > 0 && (
-        <Card className="mb-6">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base">仕分け済みデータ ({confirmedDocs.length}件)</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {confirmedDocs.map((doc) => {
-                const cat = CATEGORY_OPTIONS.find(c => c.value === doc.category)
-                const CatIcon = cat?.icon || FolderOpen
-                return (
-                  <div key={doc.id} className="flex items-center gap-3 p-3 rounded-lg border bg-muted/20">
-                    <div className={`rounded-lg p-2 ${cat?.color.split(' ')[1] || 'bg-gray-50'}`}>
-                      <CatIcon className={`h-4 w-4 ${cat?.color.split(' ')[0] || 'text-gray-600'}`} />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{doc.file.name}</p>
-                      <p className="text-xs text-muted-foreground">{cat?.label} → {doc.fields.length}項目</p>
-                    </div>
-                    <Link to={getCategoryLink(doc.category)}>
-                      <Button variant="ghost" size="sm" className="text-xs">
-                        <ArrowRightCircle className="mr-1 h-3 w-3" />詳細
-                      </Button>
-                    </Link>
-                  </div>
-                )
-              })}
+      {/* Bank Balances + Chart */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card>
+          <CardHeader><CardTitle className="text-base flex items-center gap-2"><Landmark className="h-4 w-4" />{'\u4f1a\u793e\u5225\u9280\u884c\u53e3\u5ea7\u6b8b\u9ad8'}</CardTitle></CardHeader>
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>{'\u4f1a\u793e\u540d'}</TableHead>
+                    <TableHead>{'\u9280\u884c\u540d'}</TableHead>
+                    <TableHead>{'\u53e3\u5ea7\u756a\u53f7'}</TableHead>
+                    <TableHead className="text-right">{'\u6b8b\u9ad8'}</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {bankBalances.map((b) => (
+                    <TableRow key={b.account_id}>
+                      <TableCell className="text-sm">{b.company_name}</TableCell>
+                      <TableCell className="font-medium text-sm">{b.bank_name}</TableCell>
+                      <TableCell className="font-mono text-sm">{b.account_number_masked}</TableCell>
+                      <TableCell className="text-right font-mono font-medium">{formatCurrency(b.current_balance)}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             </div>
           </CardContent>
         </Card>
-      )}
 
-      {/* SECTION 4: KPI & Alerts (collapsible) */}
-      <div className="mb-6">
-        <button
-          className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors mb-3"
-          onClick={() => setShowKpi(!showKpi)}
-        >
-          {showKpi ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-          業務概況・KPI
-        </button>
+        <Card>
+          <CardHeader><CardTitle className="text-base">{'\u4f1a\u793e\u5225\u6b8b\u9ad8\u6bd4\u8f03'}</CardTitle></CardHeader>
+          <CardContent>
+            {chartData.length > 0 ? (
+              <ResponsiveContainer width="100%" height={250}>
+                <BarChart data={chartData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="name" tick={{ fontSize: 10 }} />
+                  <YAxis tick={{ fontSize: 11 }} tickFormatter={(v: number) => `${(v / 10000).toFixed(0)}\u4e07`} />
+                  <Tooltip formatter={(value: number) => formatCurrency(value)} />
+                  <Legend />
+                  <Bar dataKey="balance" name={'\u6b8b\u9ad8'} fill="#3b82f6" radius={[2, 2, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : <p className="text-center text-muted-foreground py-8">{'\u30c7\u30fc\u30bf\u304c\u3042\u308a\u307e\u305b\u3093'}</p>}
+          </CardContent>
+        </Card>
+      </div>
 
-        {showKpi && (
-          <>
-            <div className="grid gap-4 grid-cols-2 lg:grid-cols-4 mb-6">
-              {kpiCards.map((kpi) => (
-                <Card key={kpi.label}>
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-muted-foreground">{kpi.label}</p>
-                        <p className="text-2xl font-bold mt-1">{kpi.value.toLocaleString()}</p>
-                      </div>
-                      <div className={`rounded-lg p-2 ${kpi.bg}`}>
-                        <kpi.icon className={`h-5 w-5 ${kpi.color}`} />
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+      {/* Repayment + Expiring Contracts + Recent Uploads */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <Card>
+          <CardHeader><CardTitle className="text-base flex items-center gap-2"><CalendarClock className="h-4 w-4" />{'\u4eca\u6708\u306e\u8fd4\u6e08\u4e88\u5b9a'}</CardTitle></CardHeader>
+          <CardContent className="p-0">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-12">{'\u5f15\u843d\u65e5'}</TableHead>
+                  <TableHead>{'\u501f\u5165\u5148'}</TableHead>
+                  <TableHead className="text-right">{'\u6708\u984d'}</TableHead>
+                  <TableHead className="w-8"></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {[...repaymentSchedule].sort((a, b) => a.withdrawal_day - b.withdrawal_day).map((r) => (
+                  <TableRow key={r.id} className={r.is_at_risk ? 'bg-red-50' : undefined}>
+                    <TableCell className="font-mono text-center text-sm">{r.withdrawal_day}{'\u65e5'}</TableCell>
+                    <TableCell className="text-sm">{r.lender_name}</TableCell>
+                    <TableCell className="text-right font-mono text-sm">{formatCurrency(r.monthly_repayment_amount)}</TableCell>
+                    <TableCell>{r.is_at_risk && <TrendingDown className="h-4 w-4 text-red-500" />}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
 
-            <div className="grid gap-6 lg:grid-cols-2 mb-6">
-              <Card>
-                <CardHeader><CardTitle className="text-lg">アラート・タスク</CardTitle></CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {alertItems.filter(a => a.count > 0).map((alert) => (
-                      <Link key={alert.label} to={alert.link} className="flex items-center justify-between p-3 rounded-lg hover:bg-muted/50 transition-colors">
-                        <div className="flex items-center gap-3">
-                          <Badge variant={alert.variant}>{alert.count}件</Badge>
-                          <span className="text-sm font-medium">{alert.label}</span>
-                        </div>
-                        <ArrowRight className="h-4 w-4 text-muted-foreground" />
-                      </Link>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
+        <Card>
+          <CardHeader><CardTitle className="text-base flex items-center gap-2"><Clock className="h-4 w-4" />{'\u66f4\u65b0\u671f\u9650\u304c\u8fd1\u3044\u5951\u7d04\u66f8'}</CardTitle></CardHeader>
+          <CardContent className="p-0">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{'\u66f8\u985e\u540d'}</TableHead>
+                  <TableHead className="text-right">{'\u6b8b\u65e5\u6570'}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {expiringContracts.length === 0 ? (
+                  <TableRow><TableCell colSpan={2} className="text-center py-4 text-muted-foreground">{'\u8a72\u5f53\u306a\u3057'}</TableCell></TableRow>
+                ) : expiringContracts.map((c) => (
+                  <TableRow key={c.id}>
+                    <TableCell className="text-sm font-medium">{c.title}</TableCell>
+                    <TableCell className="text-right">
+                      <span className={c.days_remaining <= 0 ? 'text-red-600 font-bold' : c.days_remaining <= 90 ? 'text-red-600 font-medium' : 'text-yellow-600'}>
+                        {c.days_remaining < 0 ? `${Math.abs(c.days_remaining)}\u65e5\u8d85\u904e` : `${c.days_remaining}\u65e5`}
+                      </span>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
 
-              <Card>
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-lg">最近の申込</CardTitle>
-                    <Link to="/applications" className="text-sm text-primary hover:underline">すべて表示</Link>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {recentApps.slice(0, 5).map((app) => (
-                      <div key={app.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
-                        <div>
-                          <p className="text-sm font-medium">{app.applicant?.full_name || '未登録'}</p>
-                          <p className="text-xs text-muted-foreground">{app.property?.name || ''} {app.unit?.unit_number || ''}</p>
-                        </div>
-                        <Badge variant={app.status === 'approved' ? 'success' : app.status === 'screening' ? 'warning' : 'info'}>
-                          {app.status === 'screening' ? '審査中' : app.status === 'approved' ? '承認済' : app.status === 'submitted' ? '申込済' : app.status}
-                        </Badge>
-                      </div>
-                    ))}
-                    {recentApps.length === 0 && (
-                      <p className="text-sm text-muted-foreground text-center py-4">申込データがありません</p>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </>
-        )}
+        <Card>
+          <CardHeader><CardTitle className="text-base flex items-center gap-2"><Upload className="h-4 w-4" />{'\u6700\u8fd1\u306e\u53d6\u8fbc'}</CardTitle></CardHeader>
+          <CardContent className="p-0">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{'\u30d5\u30a1\u30a4\u30eb\u540d'}</TableHead>
+                  <TableHead>{'\u72b6\u614b'}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {recentUploads.length === 0 ? (
+                  <TableRow><TableCell colSpan={2} className="text-center py-4 text-muted-foreground">{'\u30c7\u30fc\u30bf\u306a\u3057'}</TableCell></TableRow>
+                ) : recentUploads.map((u) => (
+                  <TableRow key={u.id}>
+                    <TableCell className="text-sm"><div className="flex items-center gap-1"><FileText className="h-3 w-3 text-muted-foreground shrink-0" /><span className="truncate">{u.file_name}</span></div></TableCell>
+                    <TableCell className="text-xs">{UPLOAD_STATUS_LABELS[u.status] || u.status}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Section 3: Panel Menu */}
+      <div>
+        <h2 className="text-lg font-semibold mb-3">{'\u6a5f\u80fd\u30e1\u30cb\u30e5\u30fc'}</h2>
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-7 gap-3">
+          {PANEL_ITEMS.map((item) => (
+            <Card key={item.path} className="cursor-pointer hover:bg-gray-50 hover:border-blue-300 transition-colors" onClick={() => navigate(item.path)}>
+              <CardContent className="pt-4 pb-3 px-3 text-center">
+                <item.icon className="h-6 w-6 mx-auto text-blue-600 mb-1.5" />
+                <p className="text-sm font-medium leading-tight">{item.label}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">{item.description}</p>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       </div>
     </div>
   )

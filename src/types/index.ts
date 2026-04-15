@@ -1,25 +1,62 @@
-export type UserRole = 'super_admin' | 'admin' | 'staff' | 'viewer'
+// ============================================================
+// Role & Permission Types
+// ============================================================
+export type RoleKey = 'president' | 'accounting_manager' | 'payment_staff' | 'expense_staff' | 'viewer'
 
-export interface Company {
+export interface Role {
   id: string
-  name: string
-  address?: string
-  phone?: string
+  role_key: RoleKey
+  role_name: string
+  description?: string
   created_at: string
   updated_at: string
 }
 
+export interface UserRole {
+  id: string
+  user_id: string
+  role_id: string
+  company_id?: string
+  created_at: string
+  updated_at: string
+  role?: Role
+}
+
+// ============================================================
+// User Types
+// ============================================================
 export interface User {
   id: string
   email: string
   full_name: string
-  role: UserRole
+  role: string
   company_id: string
   avatar_url?: string
   created_at: string
   updated_at: string
+  user_roles?: UserRole[]
 }
 
+// ============================================================
+// Company Types
+// ============================================================
+export interface Company {
+  id: string
+  name: string
+  company_code?: string
+  address?: string
+  phone?: string
+  notes?: string
+  created_at: string
+  updated_at: string
+  deleted_at?: string
+  created_by?: string
+  updated_by?: string
+}
+
+// ============================================================
+// Property Types
+// ============================================================
 export interface Property {
   id: string
   company_id: string
@@ -31,350 +68,579 @@ export interface Property {
   property_type?: string
   total_units: number
   description?: string
-  created_at: string
-  updated_at: string
-  deleted_at?: string
-}
-
-export interface Unit {
-  id: string
-  property_id: string
-  company_id: string
-  unit_number: string
-  floor?: number
-  layout?: string
-  area_sqm?: number
-  rent_amount?: number
-  management_fee?: number
-  water_fee?: number
-  parking_fee?: number
-  deposit?: number
-  key_money?: number
-  guarantee_deposit?: number
-  cancellation_fee?: number
-  status: 'vacant' | 'occupied' | 'reserved' | 'maintenance'
-  description?: string
-  created_at: string
-  updated_at: string
-  deleted_at?: string
-  property?: Property
-}
-
-export type ApplicationStatus = 'draft' | 'submitted' | 'screening' | 'approved' | 'rejected' | 'cancelled' | 'contracted'
-
-export interface Application {
-  id: string
-  company_id: string
-  property_id: string
-  unit_id: string
-  application_number?: string
-  status: ApplicationStatus
-  desired_move_in_date?: string
-  contract_start_date?: string
-  rent_amount?: number
-  management_fee?: number
-  water_fee?: number
-  parking_fee?: number
-  deposit?: number
-  key_money?: number
-  guarantee_deposit?: number
-  cancellation_fee?: number
-  purpose_of_use?: string
+  management_start_date?: string
   notes?: string
-  reception_date?: string
-  staff_name?: string
-  anti_social_check?: boolean
-  id_verification?: boolean
-  employment_verification?: boolean
-  emergency_contact_verified?: boolean
-  guarantee_company_status?: string
-  owner_approval_status?: string
-  contract_creation_status?: string
-  key_delivery_date?: string
   created_at: string
   updated_at: string
   deleted_at?: string
-  property?: Property
-  unit?: Unit
-  applicant?: Applicant
+  created_by?: string
+  updated_by?: string
+  company?: Company
 }
 
-export interface Applicant {
+// ============================================================
+// Room Types
+// ============================================================
+export type RoomStatus = 'vacant' | 'occupied' | 'reserved' | 'maintenance' | 'retired'
+
+export interface Room {
   id: string
-  application_id: string
-  full_name: string
-  full_name_kana?: string
-  birth_date?: string
-  age?: number
-  gender?: string
-  phone?: string
-  email?: string
-  current_address?: string
-  current_housing_type?: string
-  years_at_current?: number
-  employer_name?: string
-  employer_address?: string
-  employer_phone?: string
-  department?: string
-  position?: string
-  years_employed?: number
-  employment_type?: string
-  annual_income?: number
-  industry?: string
-  created_at: string
-  updated_at: string
-}
-
-export interface Occupant {
-  id: string
-  application_id: string
-  is_same_as_applicant: boolean
-  full_name: string
-  full_name_kana?: string
-  birth_date?: string
-  relationship?: string
-  phone?: string
-  employer_or_school?: string
-  created_at: string
-  updated_at: string
-}
-
-export interface EmergencyContact {
-  id: string
-  application_id: string
-  full_name: string
-  full_name_kana?: string
-  relationship?: string
-  address?: string
-  phone?: string
-  mobile?: string
-  employer_name?: string
-  employer_phone?: string
-  created_at: string
-  updated_at: string
-}
-
-export interface Guarantor {
-  id: string
-  application_id: string
-  full_name: string
-  full_name_kana?: string
-  birth_date?: string
-  age?: number
-  relationship?: string
-  address?: string
-  phone?: string
-  mobile?: string
-  employer_name?: string
-  employer_address?: string
-  employer_phone?: string
-  years_employed?: number
-  annual_income?: number
-  created_at: string
-  updated_at: string
-}
-
-export interface OcrJob {
-  id: string
-  company_id: string
-  application_id?: string
-  file_path: string
-  file_name: string
-  file_type: string
-  status: 'pending' | 'processing' | 'completed' | 'failed'
-  ocr_raw_result?: Record<string, unknown>
-  error_message?: string
-  created_at: string
-  updated_at: string
-}
-
-export interface OcrExtractedField {
-  id: string
-  ocr_job_id: string
-  ocr_label: string
-  ocr_value: string
-  mapped_field?: string
-  confidence_score?: number
-  status: 'auto_confirmed' | 'candidate' | 'needs_review' | 'unmapped'
-  candidates?: FieldCandidate[]
-  position_info?: Record<string, unknown>
-  created_at: string
-  updated_at: string
-}
-
-export interface FieldCandidate {
-  field_name: string
-  score: number
-  description?: string
-}
-
-export interface FormTemplate {
-  id: string
-  company_id: string
-  name: string
-  description?: string
-  sample_file_path?: string
-  created_at: string
-  updated_at: string
-}
-
-export interface FormFieldAlias {
-  id: string
-  form_template_id: string
-  ocr_label: string
-  system_field: string
-  priority: number
-  created_at: string
-}
-
-export interface Contract {
-  id: string
-  company_id: string
-  application_id: string
   property_id: string
-  unit_id: string
-  tenant_id?: string
-  contract_type: 'new' | 'renewal'
-  template_id?: string
-  status: 'draft' | 'active' | 'expired' | 'terminated'
-  start_date: string
-  end_date?: string
-  rent_amount: number
-  management_fee?: number
-  pdf_file_path?: string
+  room_number: string
+  rent: number
+  common_fee: number
+  water_fee: number
+  parking_fee: number
+  other_fixed_fee: number
+  status: RoomStatus
   created_at: string
   updated_at: string
   deleted_at?: string
+  created_by?: string
+  updated_by?: string
   property?: Property
-  unit?: Unit
 }
 
-export interface ContractTemplate {
-  id: string
-  company_id: string
-  name: string
-  template_type: 'lease' | 'confirmation' | 'renewal' | 'other'
-  html_content: string
-  created_at: string
-  updated_at: string
-}
-
+// ============================================================
+// Tenant Types
+// ============================================================
 export interface Tenant {
   id: string
   company_id: string
+  room_id?: string
+  tenant_name?: string
   full_name: string
   full_name_kana?: string
   birth_date?: string
   phone?: string
   email?: string
   current_address?: string
+  emergency_contact?: string
+  contract_start_date?: string
+  contract_end_date?: string
+  guarantor_company_name?: string
+  notes?: string
   contract_id?: string
   created_at: string
   updated_at: string
   deleted_at?: string
+  created_by?: string
+  updated_by?: string
+  room?: Room
 }
 
-export interface RentCharge {
-  id: string
-  company_id: string
-  contract_id: string
-  tenant_id: string
-  unit_id: string
-  charge_month: string
-  rent_amount: number
-  management_fee: number
-  other_charges: number
-  total_amount: number
-  status: 'pending' | 'partial' | 'paid' | 'overdue'
-  due_date: string
-  created_at: string
-  updated_at: string
-}
+// ============================================================
+// Monthly Charge Types
+// ============================================================
+export type ChargeStatus = 'draft' | 'confirmed' | 'partial_paid' | 'paid' | 'overdue' | 'cancelled'
 
-export interface RentPayment {
-  id: string
-  company_id: string
-  contract_id?: string
-  tenant_id?: string
-  payment_date: string
-  amount: number
-  payer_name?: string
-  payment_method?: string
-  reconciliation_status: 'unmatched' | 'matched' | 'partial'
-  notes?: string
-  created_at: string
-  updated_at: string
-}
-
-export interface ArrearsFollowup {
-  id: string
-  company_id: string
-  rent_charge_id: string
-  tenant_id: string
-  followup_type: 'phone' | 'email' | 'letter' | 'visit' | 'other'
-  followup_date: string
-  notes?: string
-  staff_name?: string
-  created_at: string
-  updated_at: string
-}
-
-export type RepairStatus = 'received' | 'investigating' | 'vendor_requested' | 'quote_pending' | 'in_progress' | 'completed'
-
-export interface Repair {
+export interface MonthlyCharge {
   id: string
   company_id: string
   property_id: string
-  unit_id?: string
-  contract_id?: string
-  tenant_name?: string
-  title: string
-  description?: string
-  status: RepairStatus
-  priority: 'low' | 'medium' | 'high' | 'urgent'
-  received_date: string
-  staff_name?: string
-  vendor_name?: string
-  estimated_cost?: number
-  actual_cost?: number
-  completed_date?: string
+  room_id: string
+  tenant_id: string
+  target_month: string
+  rent_amount: number
+  common_fee_amount: number
+  water_fee_amount: number
+  parking_fee_amount: number
+  other_amount: number
+  billed_total: number
+  status: ChargeStatus
   created_at: string
   updated_at: string
   deleted_at?: string
+  created_by?: string
+  updated_by?: string
+  company?: Company
   property?: Property
-  unit?: Unit
+  room?: Room
+  tenant?: Tenant
 }
 
-export interface AuditLog {
+// ============================================================
+// Payment Record Types
+// ============================================================
+export type PaymentStatus = 'unmatched' | 'matched' | 'partial' | 'overpaid' | 'arrears' | 'needs_review'
+
+export interface PaymentRecord {
+  id: string
+  bank_account_id?: string
+  payment_date: string
+  payer_name: string
+  description?: string
+  paid_amount: number
+  linked_charge_id?: string
+  difference_amount: number
+  status: PaymentStatus
+  created_at: string
+  updated_at: string
+  deleted_at?: string
+  created_by?: string
+  updated_by?: string
+  linked_charge?: MonthlyCharge
+}
+
+// ============================================================
+// Arrears Record Types
+// ============================================================
+export type ArrearsStatus = 'outstanding' | 'partially_paid' | 'resolved' | 'written_off'
+
+export interface ArrearsRecord {
   id: string
   company_id: string
-  user_id: string
-  user_email?: string
-  action: string
-  target_type: string
-  target_id?: string
-  details?: Record<string, unknown>
-  ip_address?: string
+  monthly_charge_id: string
+  tenant_id: string
+  room_id: string
+  target_month: string
+  billed_total: number
+  paid_total: number
+  arrears_amount: number
+  status: ArrearsStatus
+  notes?: string
+  created_at: string
+  updated_at: string
+  deleted_at?: string
+  created_by?: string
+  updated_by?: string
+  company?: Company
+  tenant?: Tenant
+  room?: Room
+  monthly_charge?: MonthlyCharge
+}
+
+// ============================================================
+// Employee Types
+// ============================================================
+export type EmployeeStatus = 'active' | 'on_leave' | 'retired'
+
+export interface Employee {
+  id: string
+  company_id: string
+  employee_name: string
+  employee_code?: string
+  department?: string
+  position?: string
+  phone?: string
+  email?: string
+  joined_date?: string
+  status: EmployeeStatus
+  notes?: string
+  created_at: string
+  updated_at: string
+  deleted_at?: string
+  created_by?: string
+  updated_by?: string
+  company?: Company
+}
+
+// ============================================================
+// Expense Category Types
+// ============================================================
+export interface ExpenseCategory {
+  id: string
+  category_name: string
+  sort_order: number
+  notes?: string
+  created_at: string
+  updated_at: string
+  deleted_at?: string
+}
+
+// ============================================================
+// Bank Account Types
+// ============================================================
+export type AccountType = 'ordinary' | 'checking' | 'savings' | 'time_deposit'
+
+export interface BankAccount {
+  id: string
+  company_id: string
+  bank_name: string
+  branch_name?: string
+  account_type: AccountType
+  account_number: string
+  account_holder: string
+  current_balance: number
+  notes?: string
+  created_at: string
+  updated_at: string
+  deleted_at?: string
+  created_by?: string
+  updated_by?: string
+  company?: Company
+}
+
+// ============================================================
+// Expense Record Types
+// ============================================================
+export type ExpenseStatus = 'pending' | 'scheduled' | 'paid' | 'needs_review'
+export type PaymentMethod = 'bank_transfer' | 'cash' | 'credit_card' | 'direct_debit' | 'other'
+
+export interface ExpenseRecord {
+  id: string
+  company_id: string
+  payment_date: string
+  vendor_name: string
+  description?: string
+  amount: number
+  category_id?: string
+  payment_method: PaymentMethod
+  bank_account_id?: string
+  status: ExpenseStatus
+  notes?: string
+  created_at: string
+  updated_at: string
+  deleted_at?: string
+  created_by?: string
+  updated_by?: string
+  company?: Company
+  category?: ExpenseCategory
+  bank_account?: BankAccount
+}
+
+// ============================================================
+// Payroll Record Types
+// ============================================================
+export type PayrollStatus = 'draft' | 'confirmed' | 'paid' | 'needs_review'
+
+export interface PayrollRecord {
+  id: string
+  company_id: string
+  employee_id: string
+  target_month: string
+  base_salary: number
+  allowance: number
+  deduction: number
+  net_payment: number
+  payment_date?: string
+  status: PayrollStatus
+  notes?: string
+  created_at: string
+  updated_at: string
+  deleted_at?: string
+  created_by?: string
+  updated_by?: string
+  company?: Company
+  employee?: Employee
+}
+
+// ============================================================
+// Bank Transaction Types
+// ============================================================
+export type TransactionType = 'deposit' | 'withdrawal'
+
+export interface BankTransaction {
+  id: string
+  bank_account_id: string
+  transaction_date: string
+  transaction_type: TransactionType
+  description?: string
+  amount: number
+  balance_after?: number
+  related_type?: string
+  related_id?: string
+  notes?: string
+  created_at: string
+  updated_at: string
+  deleted_at?: string
+  created_by?: string
+  updated_by?: string
+  bank_account?: BankAccount
+}
+
+// ============================================================
+// Loan Repayment Types
+// ============================================================
+export type LoanRepaymentStatus = 'scheduled' | 'completed' | 'needs_review'
+
+export interface LoanRepayment {
+  id: string
+  company_id: string
+  bank_account_id?: string
+  lender_name: string
+  monthly_repayment_amount: number
+  withdrawal_day: number
+  next_withdrawal_date?: string
+  status: LoanRepaymentStatus
+  notes?: string
+  created_at: string
+  updated_at: string
+  deleted_at?: string
+  created_by?: string
+  updated_by?: string
+  company?: Company
+  bank_account?: BankAccount
+}
+
+// ============================================================
+// Fund Transfer Types
+// ============================================================
+export interface FundTransfer {
+  id: string
+  transfer_date: string
+  from_account_id: string
+  to_account_id: string
+  amount: number
+  reason?: string
+  notes?: string
+  created_at: string
+  updated_at: string
+  deleted_at?: string
+  created_by?: string
+  updated_by?: string
+  from_account?: BankAccount
+  to_account?: BankAccount
+}
+
+// ============================================================
+// Dashboard Types
+// ============================================================
+export interface DashboardStats {
+  total_companies: number
+  total_properties: number
+  total_rooms: number
+  occupied_rooms: number
+  vacant_rooms: number
+  total_tenants: number
+  monthly_charges_count: number
+  monthly_charges_total: number
+  payments_count: number
+  payments_total: number
+  arrears_count: number
+  arrears_total: number
+}
+
+export interface CompanySummary {
+  company_id: string
+  company_name: string
+  properties_count: number
+  rooms_count: number
+  charges_count: number
+  charges_total: number
+  payments_count: number
+  payments_total: number
+  arrears_count: number
+  arrears_total: number
+}
+
+export interface BankAccountBalance {
+  account_id: string
+  company_name: string
+  bank_name: string
+  branch_name: string
+  account_number_masked: string
+  current_balance: number
+}
+
+export interface RepaymentSchedule {
+  id: string
+  company_name: string
+  lender_name: string
+  monthly_repayment_amount: number
+  withdrawal_day: number
+  next_withdrawal_date: string
+  account_balance: number
+  is_at_risk: boolean
+}
+
+// ============================================================
+// Document Category Types
+// ============================================================
+export interface DocumentCategory {
+  id: string
+  category_name: string
+  sort_order: number
+  notes?: string
+  created_at: string
+  updated_at: string
+  deleted_at?: string
+}
+
+// ============================================================
+// Document Types
+// ============================================================
+export type DocumentStatus = 'active' | 'expired' | 'renewal_pending' | 'cancelled' | 'needs_review'
+
+export interface Document {
+  id: string
+  category_id?: string
+  title: string
+  company_id?: string
+  property_id?: string
+  room_id?: string
+  tenant_id?: string
+  bank_account_id?: string
+  related_loan_repayment_id?: string
+  issue_date?: string
+  contract_start_date?: string
+  contract_end_date?: string
+  renewal_date?: string
+  status: DocumentStatus
+  file_path?: string
+  notes?: string
+  created_at: string
+  updated_at: string
+  deleted_at?: string
+  created_by?: string
+  updated_by?: string
+  category?: DocumentCategory
+  company?: Company
+  property?: Property
+  room?: Room
+  tenant?: Tenant
+  bank_account?: BankAccount
+}
+
+// ============================================================
+// Document Version Types
+// ============================================================
+export interface DocumentVersion {
+  id: string
+  document_id: string
+  version_number: number
+  file_path: string
+  file_name: string
+  file_size?: number
+  mime_type?: string
+  uploaded_by?: string
+  notes?: string
   created_at: string
 }
 
-export interface DashboardStats {
-  total_properties: number
-  total_units: number
-  occupied_units: number
-  vacant_units: number
-  pending_applications: number
-  contracts_this_month: number
-  arrears_count: number
-  active_repairs: number
+// ============================================================
+// Document Link Types
+// ============================================================
+export type DocumentLinkTargetType = 'company' | 'property' | 'room' | 'tenant' | 'bank_account' | 'loan_repayment' | 'expense' | 'payroll'
+
+export interface DocumentLink {
+  id: string
+  document_id: string
+  target_type: DocumentLinkTargetType
+  target_id: string
+  target_label?: string
+  created_at: string
 }
 
-export interface DashboardAlerts {
-  ocr_unconfirmed: number
-  mapping_unconfirmed: number
-  contracts_not_created: number
-  payments_unconfirmed: number
-  arrears_count: number
-  repairs_incomplete: number
-  new_templates_detected: number
+// ============================================================
+// Document Alert Types
+// ============================================================
+export type AlertType = 'expiring_soon' | 'expired' | 'renewal_due'
+
+export interface DocumentAlert {
+  id: string
+  document_id: string
+  alert_type: AlertType
+  alert_date: string
+  is_resolved: boolean
+  resolved_at?: string
+  resolved_by?: string
+  created_at: string
+  document?: Document
+}
+
+// ============================================================
+// Uploaded File Types
+// ============================================================
+export type UploadedFileStatus = 'uploaded' | 'processing' | 'extracted' | 'review_pending' | 'confirmed' | 'error'
+
+export interface UploadedFile {
+  id: string
+  file_name: string
+  file_path: string
+  file_size: number
+  mime_type: string
+  uploaded_by?: string
+  status: UploadedFileStatus
+  notes?: string
+  created_at: string
+  updated_at: string
+}
+
+// ============================================================
+// Extracted Data Candidate Types
+// ============================================================
+export type ExtractionType = 'bank_statement' | 'receipt_invoice' | 'lease_contract' | 'loan_contract'
+export type ReviewStatus = 'pending' | 'approved' | 'rejected' | 'needs_correction'
+
+export interface ExtractedDataCandidate {
+  id: string
+  uploaded_file_id: string
+  extraction_type: ExtractionType
+  raw_text?: string
+  parsed_json?: Record<string, unknown>
+  review_status: ReviewStatus
+  reviewer_id?: string
+  reviewed_at?: string
+  notes?: string
+  created_at: string
+  updated_at: string
+  uploaded_file?: UploadedFile
+}
+
+// ============================================================
+// Import Log Types
+// ============================================================
+export type ImportStatus = 'imported' | 'extracted' | 'review_pending' | 'confirmed' | 'error'
+
+export interface ImportLog {
+  id: string
+  uploaded_file_id: string
+  extraction_type?: ExtractionType
+  status: ImportStatus
+  error_message?: string
+  confirmed_by?: string
+  confirmed_at?: string
+  target_table?: string
+  target_id?: string
+  notes?: string
+  created_at: string
+  updated_at: string
+  uploaded_file?: UploadedFile
+}
+
+// ============================================================
+// Phase 4: Tenant Alias Types (表記ゆれ対応)
+// ============================================================
+export interface TenantAlias {
+  id: string
+  tenant_id: string
+  alias_name: string
+  alias_name_normalized: string
+  source?: string
+  created_at: string
+}
+
+export interface PayerNameAlias {
+  id: string
+  payer_name: string
+  payer_name_normalized: string
+  tenant_id?: string
+  source?: string
+  created_at: string
+}
+
+export interface MatchHistoryRecord {
+  id: string
+  payer_name: string
+  matched_tenant_id?: string
+  match_reason?: string
+  confidence_score?: number
+  confirmed_by?: string
+  confirmed_at?: string
+  created_at: string
+}
+
+// ============================================================
+// Phase 4: Monthly Income/Expense Types (月次収支)
+// ============================================================
+export interface MonthlyIncomeExpense {
+  company_id: string
+  company_name: string
+  month: string
+  income_total: number
+  expense_total: number
+  net_income: number
+  income_breakdown: { label: string; amount: number }[]
+  expense_breakdown: { label: string; amount: number }[]
 }
