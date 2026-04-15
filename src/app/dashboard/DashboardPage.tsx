@@ -527,6 +527,7 @@ export function DashboardPage() {
   }
 
   const removeDocument = (docId: string) => {
+    rawFileStore.delete(docId)
     setDocuments(prev => {
       const remaining = prev.filter(d => d.id !== docId)
       if (activeDocId === docId) {

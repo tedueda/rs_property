@@ -33,10 +33,10 @@ export function RentPage() {
       <PageHeader title="家賃管理" description="請求・入金管理"
         actions={<Button><Plus className="mr-2 h-4 w-4" />入金登録</Button>} />
       <div className="grid gap-4 grid-cols-2 lg:grid-cols-4 mb-6">
-        <Card><CardContent className="p-4"><p className="text-sm text-muted-foreground">今月請求</p><p className="text-2xl font-bold">¥{totalCharged.toLocaleString()}</p></CardContent></Card>
-        <Card><CardContent className="p-4"><p className="text-sm text-muted-foreground">入金済</p><p className="text-2xl font-bold text-green-600">¥{totalPaid.toLocaleString()}</p></CardContent></Card>
-        <Card><CardContent className="p-4"><p className="text-sm text-muted-foreground">未収</p><p className="text-2xl font-bold text-orange-600">¥{(totalCharged - totalPaid).toLocaleString()}</p></CardContent></Card>
-        <Card><CardContent className="p-4"><p className="text-sm text-muted-foreground">滞納</p><p className="text-2xl font-bold text-red-600">¥{totalOverdue.toLocaleString()}</p></CardContent></Card>
+        <Card><CardContent className="p-4"><p className="text-sm text-muted-foreground">請求総額</p><p className="text-2xl font-bold">¥{totalCharged.toLocaleString()}</p></CardContent></Card>
+        <Card><CardContent className="p-4"><p className="text-sm text-muted-foreground">入金総額</p><p className="text-2xl font-bold text-green-600">¥{totalPaid.toLocaleString()}</p></CardContent></Card>
+        <Card><CardContent className="p-4"><p className="text-sm text-muted-foreground">未収総額</p><p className="text-2xl font-bold text-orange-600">¥{(totalCharged - totalPaid).toLocaleString()}</p></CardContent></Card>
+        <Card><CardContent className="p-4"><p className="text-sm text-muted-foreground">滞納総額</p><p className="text-2xl font-bold text-red-600">¥{totalOverdue.toLocaleString()}</p></CardContent></Card>
       </div>
       <Tabs value={tab} onValueChange={setTab}>
         <TabsList className="mb-4">
