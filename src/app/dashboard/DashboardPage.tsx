@@ -14,6 +14,9 @@ import {
   FolderOpen, ArrowRightCircle, Trash2, RotateCcw, Plus
 } from 'lucide-react'
 import type { DashboardStats, DashboardAlerts } from '@/types'
+import { useDashboardStats, uploadFile, createOcrJob, updateOcrJob, saveOcrExtractedFields, useApplications } from '@/lib/supabase/hooks'
+import { runOcr, isOcrAvailable } from '@/lib/ocr/vision'
+import { useAuthStore } from '@/store/auth'
 
 // --- Types for OCR workflow ---
 type FileStatus = 'uploading' | 'processing' | 'completed' | 'failed'
@@ -64,39 +67,8 @@ const CATEGORY_OPTIONS: { value: DataCategory; label: string; icon: typeof Build
   { value: 'other', label: 'その他', icon: FolderOpen, color: 'text-gray-600 bg-gray-50' },
 ]
 
-function generateMockFields(category: DataCategory): ExtractedField[] {
-  const applicationFields: ExtractedField[] = [
-    { id: 'f1', label: '氏名', value: '田中 太郎', confidence: 0.95, status: 'auto', originalValue: '田中 太郎' },
-    { id: 'f2', label: 'フリガナ', value: 'タナカ タロウ', confidence: 0.88, status: 'auto', originalValue: 'タナカ タロウ' },
-    { id: 'f3', label: '生年月日', value: '1990-05-15', confidence: 0.72, status: 'auto', originalValue: '1990-05-15' },
-    { id: 'f4', label: '電話番号', value: '090-1234-5678', confidence: 0.91, status: 'auto', originalValue: '090-1234-5678' },
-    { id: 'f5', label: '現住所', value: '東京都新宿区西新宿1-1-1', confidence: 0.65, status: 'auto', originalValue: '東京都新宿区西新宿1-1-1' },
-    { id: 'f6', label: '勤務先', value: '株式会社○○', confidence: 0.78, status: 'auto', originalValue: '株式会社○○' },
-    { id: 'f7', label: '年収', value: '5,000,000', confidence: 0.45, status: 'unreadable', originalValue: '5,0?0,000' },
-    { id: 'f8', label: '希望物件', value: 'サンハイツA棟 301号室', confidence: 0.82, status: 'auto', originalValue: 'サンハイツA棟 301号室' },
-    { id: 'f9', label: '希望賃料', value: '95,000', confidence: 0.88, status: 'auto', originalValue: '95,000' },
-    { id: 'f10', label: '入居希望日', value: '2026-05-01', confidence: 0.55, status: 'auto', originalValue: '2026-0?-01' },
-  ]
-  const propertyFields: ExtractedField[] = [
-    { id: 'f1', label: '物件名', value: 'パークビュー横浜', confidence: 0.96, status: 'auto', originalValue: 'パークビュー横浜' },
-    { id: 'f2', label: '所在地', value: '神奈川県横浜市中区山下町3-3-3', confidence: 0.89, status: 'auto', originalValue: '神奈川県横浜市中区山下町3-3-3' },
-    { id: 'f3', label: '総戸数', value: '48', confidence: 0.92, status: 'auto', originalValue: '48' },
-    { id: 'f4', label: '構造', value: 'RC造', confidence: 0.85, status: 'auto', originalValue: 'RC造' },
-    { id: 'f5', label: '築年数', value: '15年', confidence: 0.78, status: 'auto', originalValue: '15年' },
-    { id: 'f6', label: '管理会社', value: 'アールエス株式会社', confidence: 0.94, status: 'auto', originalValue: 'アールエス株式会社' },
-  ]
-  const contractFields: ExtractedField[] = [
-    { id: 'f1', label: '契約者名', value: '佐藤 花子', confidence: 0.93, status: 'auto', originalValue: '佐藤 花子' },
-    { id: 'f2', label: '物件名', value: 'グリーンコート 205号室', confidence: 0.90, status: 'auto', originalValue: 'グリーンコート 205号室' },
-    { id: 'f3', label: '契約開始日', value: '2026-04-01', confidence: 0.87, status: 'auto', originalValue: '2026-04-01' },
-    { id: 'f4', label: '賃料', value: '120,000', confidence: 0.91, status: 'auto', originalValue: '120,000' },
-    { id: 'f5', label: '敷金', value: '240,000', confidence: 0.83, status: 'auto', originalValue: '240,000' },
-    { id: 'f6', label: '契約期間', value: '2年', confidence: 0.88, status: 'auto', originalValue: '2年' },
-  ]
-  if (category === 'property') return propertyFields
-  if (category === 'contract') return contractFields
-  return applicationFields
-}
+// Store raw files for OCR retry
+const rawFileStore = new Map<string, File>()
 
 function suggestCategory(fileName: string): DataCategory {
   const lower = fileName.toLowerCase()
@@ -108,8 +80,8 @@ function suggestCategory(fileName: string): DataCategory {
   return 'application'
 }
 
-const defaultStats: DashboardStats = { total_properties: 12, total_units: 248, occupied_units: 221, vacant_units: 27, pending_applications: 8, contracts_this_month: 5, arrears_count: 3, active_repairs: 7 }
-const defaultAlerts: DashboardAlerts = { ocr_unconfirmed: 4, mapping_unconfirmed: 2, contracts_not_created: 3, payments_unconfirmed: 6, arrears_count: 3, repairs_incomplete: 7, new_templates_detected: 1 }
+const defaultStats: DashboardStats = { total_properties: 0, total_units: 0, occupied_units: 0, vacant_units: 0, pending_applications: 0, contracts_this_month: 0, arrears_count: 0, active_repairs: 0 }
+const defaultAlerts: DashboardAlerts = { ocr_unconfirmed: 0, mapping_unconfirmed: 0, contracts_not_created: 0, payments_unconfirmed: 0, arrears_count: 0, repairs_incomplete: 0, new_templates_detected: 0 }
 
 // ============================================
 // Document Detail Sub-component
@@ -380,23 +352,96 @@ function getCategoryLink(category: DataCategory | null): string {
 // Main Dashboard Component
 // ============================================
 export function DashboardPage() {
-  const [stats] = useState<DashboardStats>(defaultStats)
-  const [alerts] = useState<DashboardAlerts>(defaultAlerts)
+  const { user } = useAuthStore()
+  const { stats: dbStats, alerts: dbAlerts, loading: statsLoading } = useDashboardStats()
+  const { data: recentApps } = useApplications()
+  const stats = statsLoading ? defaultStats : dbStats
+  const alerts = statsLoading ? defaultAlerts : dbAlerts
   const [documents, setDocuments] = useState<OcrDocument[]>([])
   const [activeDocId, setActiveDocId] = useState<string | null>(null)
   const [isDragging, setIsDragging] = useState(false)
   const [showKpi, setShowKpi] = useState(false)
+  const [ocrError, setOcrError] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => { document.title = 'ダッシュボード - RS不動産管理' }, [])
 
   const activeDoc = documents.find(d => d.id === activeDocId) || null
 
+  const processFileWithOcr = useCallback(async (docId: string, file: File, suggested: DataCategory) => {
+    setOcrError(null)
+    try {
+      // Upload to Supabase Storage
+      const companyId = user?.company_id || '00000000-0000-0000-0000-000000000001'
+      const filePath = `ocr/${companyId}/${Date.now()}-${file.name}`
+      try {
+        await uploadFile('documents', filePath, file)
+      } catch {
+        // Storage upload is optional, continue with OCR
+      }
+
+      setDocuments(prev => prev.map(d =>
+        d.id === docId ? { ...d, file: { ...d.file, progress: 100, status: 'processing' } } : d
+      ))
+
+      // Create OCR job in Supabase
+      let ocrJobId: string | null = null
+      try {
+        const ocrJob = await createOcrJob({ company_id: companyId, file_path: filePath, file_name: file.name, file_type: file.type || 'application/octet-stream' })
+        ocrJobId = ocrJob.id
+      } catch {
+        // OCR job tracking is optional
+      }
+
+      // Run Google Cloud Vision OCR
+      if (!isOcrAvailable()) {
+        throw new Error('Google Cloud Vision APIキーが設定されていません')
+      }
+      const result = await runOcr(file)
+
+      // Map OCR result fields to ExtractedField format
+      const extractedFields: ExtractedField[] = result.fields.map(f => ({
+        id: f.id,
+        label: f.label,
+        value: f.value,
+        confidence: f.confidence,
+        status: f.status === 'unreadable' ? 'unreadable' as const : 'auto' as const,
+        originalValue: f.originalValue,
+      }))
+
+      // Update OCR job as completed
+      if (ocrJobId) {
+        try {
+          await updateOcrJob(ocrJobId, { status: 'completed', ocr_raw_result: { fullText: result.fullText } as Record<string, unknown> })
+          await saveOcrExtractedFields(ocrJobId, result.fields.map(f => ({
+            ocr_label: f.label,
+            ocr_value: f.value,
+            confidence_score: f.confidence,
+            status: f.confidence >= 0.8 ? 'auto_confirmed' as const : f.confidence >= 0.5 ? 'candidate' as const : 'needs_review' as const,
+          })))
+        } catch {
+          // Saving to DB is optional
+        }
+      }
+
+      setDocuments(prev => prev.map(d =>
+        d.id === docId ? { ...d, file: { ...d.file, status: 'completed' }, fields: extractedFields, category: suggested } : d
+      ))
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'OCR処理に失敗しました'
+      setOcrError(msg)
+      setDocuments(prev => prev.map(d =>
+        d.id === docId ? { ...d, file: { ...d.file, status: 'failed' } } : d
+      ))
+    }
+  }, [user])
+
   const handleFiles = useCallback((files: FileList | File[]) => {
     const fileArray = Array.from(files)
     const newDocs: OcrDocument[] = fileArray.map((file, i) => {
       const id = `doc-${Date.now()}-${i}`
       const suggested = suggestCategory(file.name)
+      rawFileStore.set(id, file)
       return {
         id,
         file: {
@@ -418,25 +463,13 @@ export function DashboardPage() {
     setDocuments(prev => [...newDocs, ...prev])
     if (newDocs.length > 0) setActiveDocId(newDocs[0].id)
 
-    newDocs.forEach((doc) => {
-      let progress = 0
-      const uploadInterval = setInterval(() => {
-        progress += 20
-        setDocuments(prev => prev.map(d =>
-          d.id === doc.id ? { ...d, file: { ...d.file, progress: Math.min(progress, 100), status: progress >= 100 ? 'processing' : 'uploading' } } : d
-        ))
-        if (progress >= 100) {
-          clearInterval(uploadInterval)
-          setTimeout(() => {
-            const mockFields = generateMockFields(doc.suggestedCategory)
-            setDocuments(prev => prev.map(d =>
-              d.id === doc.id ? { ...d, file: { ...d.file, status: 'completed' }, fields: mockFields, category: doc.suggestedCategory } : d
-            ))
-          }, 1500 + Math.random() * 1000)
-        }
-      }, 200)
+    // Process each file with real OCR
+    fileArray.forEach((file, i) => {
+      const docId = newDocs[i].id
+      const suggested = newDocs[i].suggestedCategory
+      processFileWithOcr(docId, file, suggested)
     })
-  }, [])
+  }, [processFileWithOcr])
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault()
@@ -507,16 +540,11 @@ export function DashboardPage() {
     setDocuments(prev => prev.map(d =>
       d.id === docId ? { ...d, file: { ...d.file, status: 'processing' as const }, fields: [] } : d
     ))
-    setTimeout(() => {
-      setDocuments(prev => {
-        const doc = prev.find(d => d.id === docId)
-        if (!doc) return prev
-        const mockFields = generateMockFields(doc.suggestedCategory)
-        return prev.map(d =>
-          d.id === docId ? { ...d, file: { ...d.file, status: 'completed' as const }, fields: mockFields } : d
-        )
-      })
-    }, 2000)
+    const rawFile = rawFileStore.get(docId)
+    if (rawFile) {
+      const doc = documents.find(d => d.id === docId)
+      processFileWithOcr(docId, rawFile, doc?.suggestedCategory || 'application')
+    }
   }
 
   const kpiCards = [
@@ -595,6 +623,14 @@ export function DashboardPage() {
           </div>
         </CardContent>
       </Card>
+
+      {ocrError && (
+        <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700 flex items-center gap-2">
+          <XCircle className="h-4 w-4 shrink-0" />
+          <span>{ocrError}</span>
+          <button className="ml-auto text-xs underline" onClick={() => setOcrError(null)}>閉じる</button>
+        </div>
+      )}
 
       {/* SECTION 2: Processing Queue + Data Review */}
       {documents.length > 0 && (
@@ -774,21 +810,20 @@ export function DashboardPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
-                    {[
-                      { name: '田中太郎', property: 'サンハイツA棟', unit: '301号室', status: 'screening' },
-                      { name: '佐藤花子', property: 'グリーンコート', unit: '205号室', status: 'submitted' },
-                      { name: '山田一郎', property: 'パークビュー', unit: '102号室', status: 'approved' },
-                    ].map((app, i) => (
-                      <div key={i} className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
+                    {recentApps.slice(0, 5).map((app) => (
+                      <div key={app.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
                         <div>
-                          <p className="text-sm font-medium">{app.name}</p>
-                          <p className="text-xs text-muted-foreground">{app.property} {app.unit}</p>
+                          <p className="text-sm font-medium">{app.applicant?.full_name || '未登録'}</p>
+                          <p className="text-xs text-muted-foreground">{app.property?.name || ''} {app.unit?.unit_number || ''}</p>
                         </div>
                         <Badge variant={app.status === 'approved' ? 'success' : app.status === 'screening' ? 'warning' : 'info'}>
-                          {app.status === 'screening' ? '審査中' : app.status === 'approved' ? '承認済' : '申込済'}
+                          {app.status === 'screening' ? '審査中' : app.status === 'approved' ? '承認済' : app.status === 'submitted' ? '申込済' : app.status}
                         </Badge>
                       </div>
                     ))}
+                    {recentApps.length === 0 && (
+                      <p className="text-sm text-muted-foreground text-center py-4">申込データがありません</p>
+                    )}
                   </div>
                 </CardContent>
               </Card>
