@@ -68,19 +68,77 @@ const FIELD_MAP: Record<string, keyof PropertyLedgerData> = {
   '備考': 'notes',
 }
 
+// Sorted longest-first so "家賃" doesn't match "家賃他合計"
+const FIELD_KEYS_SORTED = Object.keys(FIELD_MAP).sort((a, b) => b.length - a.length)
+
+// Labels that should NOT match any field (e.g. "家賃他合計" contains "家賃" but is a different concept)
+const FIELD_EXCLUDE = ['家賃他合計']
+
+// Column header aliases used in tabular Excel sheets
+const EXCEL_HEADER_MAP: Record<string, keyof PropertyLedgerData> = {
+  '賃借人': 'tenant_name',
+  '賃借人の名前': 'tenant_name',
+  '居住者': 'tenant_name',
+  '電話番号': 'phone',
+  '保証人': 'guarantor',
+  '保証会社': 'guarantee_company',
+  '入居年月日': 'move_in_date',
+  '入居日': 'move_in_date',
+  '家賃': 'rent',
+  '共益費': 'common_fee',
+  '管理費': 'common_fee',
+  '水道代': 'water_fee',
+  '引落手数料': 'deduction',
+  '保証金': 'deposit',
+  '敷金': 'deposit',
+  '控除': 'deduction',
+  '礼金': 'deposit',
+  'ハウスクリーニング代': 'house_cleaning_fee',
+  'クリーニング代': 'house_cleaning_fee',
+  '違約金': 'penalty',
+  '備考': 'notes',
+  '物件名': 'property_name',
+  '部屋番号': 'property_name',
+}
+
 const SECTION_HEADERS = ['契約者情報', '物件・入居情報', '費用・契約条件', '備考']
 
 function matchField(label: string): keyof PropertyLedgerData | null {
   const cleaned = label.replace(/[\s\u3000]+/g, '').trim()
-  for (const [key, field] of Object.entries(FIELD_MAP)) {
-    if (cleaned.includes(key)) return field
+  // Reject labels in the exclusion list
+  if (FIELD_EXCLUDE.some(ex => cleaned === ex)) return null
+  // Try exact match first
+  if (FIELD_MAP[cleaned]) return FIELD_MAP[cleaned]
+  // Longest-key-first substring match to avoid "家賃" matching "家賃他合計"
+  for (const key of FIELD_KEYS_SORTED) {
+    if (cleaned === key) return FIELD_MAP[key]
+  }
+  // Fallback: substring match only for short labels that are a known key
+  for (const key of FIELD_KEYS_SORTED) {
+    if (cleaned.includes(key) && !FIELD_EXCLUDE.some(ex => cleaned.includes(ex))) return FIELD_MAP[key]
   }
   return null
 }
 
 function isSection(text: string): boolean {
   const cleaned = text.replace(/[\s\u3000]+/g, '').trim()
+  // Only match exact section headers, not labels that contain them (e.g. "備考欄" should NOT match "備考")
   return SECTION_HEADERS.some(h => cleaned === h)
+}
+
+function isRecordEmpty(data: PropertyLedgerData): boolean {
+  return !data.tenant_name && !data.phone && !data.rent && !data.move_in_date && !data.guarantor && !data.notes
+}
+
+const MONETARY_FIELDS: Set<keyof PropertyLedgerData> = new Set([
+  'rent', 'common_fee', 'water_fee', 'deposit', 'house_cleaning_fee', 'penalty',
+])
+
+function formatValue(field: keyof PropertyLedgerData, value: string): string {
+  if (MONETARY_FIELDS.has(field) && /^\d+$/.test(value)) {
+    return Number(value).toLocaleString() + '円'
+  }
+  return value
 }
 
 function extractPropertyName(text: string): string {
@@ -103,7 +161,7 @@ function parseRows(rows: [string, string][]): PropertyLedgerData {
     if (isSection(label)) continue
     const field = matchField(label)
     if (field && value.trim()) {
-      data[field] = value.trim()
+      data[field] = formatValue(field, value.trim())
     }
   }
 
@@ -161,8 +219,11 @@ export async function parseDocx(file: File): Promise<PropertyLedgerData> {
 
   // Get all text content for header extraction
   const allText = doc.body.textContent || ''
-  const propNameMatch = allText.match(/\u7269\u4ef6\u7ba1\u7406\u53f0\u5e33[\s\u3000]*([^\n\u4f5c]+)/u)
-  if (propNameMatch) data.property_name = propNameMatch[1].trim()
+  // Match property name after 物件管理台帳, stopping at section headers or field labels
+  const propNameMatch = allText.match(/\u7269\u4ef6\u7ba1\u7406\u53f0\u5e33[\s\u3000]*([^\n]{0,50}?)(?:\u5951\u7d04\u8005\u60c5\u5831|\u8cc3\u501f\u4eba|\u4f5c\u6210\u65e5|$)/u)
+  if (propNameMatch && propNameMatch[1].trim()) {
+    data.property_name = propNameMatch[1].trim()
+  }
 
   const dateMatch = allText.match(/作成日[：:]?\s*([^\n]+)/u)
   if (dateMatch) data.created_date = dateMatch[1].trim()
@@ -207,24 +268,98 @@ export async function parseDocx(file: File): Promise<PropertyLedgerData> {
 
 // ==================== Excel Parser ====================
 
+/**
+ * Detect if an Excel sheet uses a tabular layout (header row + data rows)
+ * by checking if any row contains multiple known field headers.
+ */
+function detectTabularHeaders(rows: string[][]): { headerRowIdx: number; colMap: Record<number, keyof PropertyLedgerData> } | null {
+  for (let i = 0; i < Math.min(rows.length, 5); i++) {
+    const row = rows[i]
+    const colMap: Record<number, keyof PropertyLedgerData> = {}
+    let matchCount = 0
+    for (let c = 0; c < row.length; c++) {
+      const cell = String(row[c] || '').replace(/[\s\u3000]+/g, '').trim()
+      if (EXCEL_HEADER_MAP[cell]) {
+        colMap[c] = EXCEL_HEADER_MAP[cell]
+        matchCount++
+      }
+    }
+    if (matchCount >= 3) return { headerRowIdx: i, colMap }
+  }
+  return null
+}
+
+/**
+ * Parse a tabular Excel sheet where each row is a separate property record.
+ */
+function parseTabularSheet(rows: string[][], headerRowIdx: number, colMap: Record<number, keyof PropertyLedgerData>): PropertyLedgerData[] {
+  const results: PropertyLedgerData[] = []
+  const headerRow = rows[headerRowIdx]
+
+  // Find property_name column index and room number column
+  let propNameCol = -1
+  let roomCol = -1
+  for (let c = 0; c < headerRow.length; c++) {
+    const cell = String(headerRow[c] || '').replace(/[\s\u3000]+/g, '').trim()
+    if (cell === '物件名') propNameCol = c
+    if (cell === '部屋番号') roomCol = c
+  }
+
+  for (let i = headerRowIdx + 1; i < rows.length; i++) {
+    const row = rows[i]
+    const data = { ...EMPTY_LEDGER }
+
+    for (const [colStr, field] of Object.entries(colMap)) {
+      const col = Number(colStr)
+      const val = String(row[col] ?? '').trim()
+      if (val && field !== 'property_name') {
+        data[field] = formatValue(field, val)
+      }
+    }
+
+    // Build property name from 物件名 + 部屋番号
+    if (propNameCol >= 0) {
+      const propName = String(row[propNameCol] ?? '').trim()
+      const room = roomCol >= 0 ? String(row[roomCol] ?? '').trim() : ''
+      data.property_name = room ? `${propName} ${room}号室` : propName
+    }
+
+    if (!isRecordEmpty(data)) results.push(data)
+  }
+
+  return results
+}
+
 export function parseExcel(file: ArrayBuffer): PropertyLedgerData[] {
   const workbook = XLSX.read(file, { type: 'array' })
   const results: PropertyLedgerData[] = []
 
   for (const sheetName of workbook.SheetNames) {
     const sheet = workbook.Sheets[sheetName]
-    const jsonData = XLSX.utils.sheet_to_json<Record<string, string>>(sheet, { header: 'A', defval: '' })
+    const allRows = XLSX.utils.sheet_to_json<string[]>(sheet, { header: 1, defval: '' })
 
-    if (jsonData.length === 0) continue
+    if (allRows.length === 0) continue
 
+    // Try tabular format first
+    const tabular = detectTabularHeaders(allRows.map(r => r.map(c => String(c))))
+    if (tabular) {
+      const parsed = parseTabularSheet(
+        allRows.map(r => r.map(c => String(c))),
+        tabular.headerRowIdx,
+        tabular.colMap,
+      )
+      results.push(...parsed)
+      continue
+    }
+
+    // Fallback: 2-column key-value format
     const data = { ...EMPTY_LEDGER }
     const rows: [string, string][] = []
 
-    for (const row of jsonData) {
-      const colA = String(row['A'] || '').trim()
-      const colB = String(row['B'] || '').trim()
+    for (const row of allRows) {
+      const colA = String(row[0] ?? '').trim()
+      const colB = String(row[1] ?? '').trim()
 
-      // Check for header
       if (colA.includes('物件管理台帳')) {
         data.property_name = extractPropertyName(colA) || colA.replace('物件管理台帳', '').trim()
       }
@@ -238,11 +373,12 @@ export function parseExcel(file: ArrayBuffer): PropertyLedgerData[] {
     }
 
     const parsed = parseRows(rows)
-    results.push({
+    const record = {
       ...parsed,
       property_name: data.property_name || parsed.property_name,
       created_date: data.created_date || parsed.created_date,
-    })
+    }
+    if (!isRecordEmpty(record)) results.push(record)
   }
 
   return results
