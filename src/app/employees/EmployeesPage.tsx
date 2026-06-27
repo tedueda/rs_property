@@ -76,7 +76,7 @@ export function EmployeesPage() {
       supabase.from('companies').select('id, name').is('deleted_at', null).order('name'),
     ])
     setEmployees(emp || [])
-    setCompanies(co || [])
+    setCompanies(co as Company[] || [])
     setLoading(false)
   }, [])
 

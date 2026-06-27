@@ -87,7 +87,7 @@ export function ChargesPage() {
       supabase.from('rooms').select('id, room_number, property_id, rent, common_fee, water_fee, parking_fee, other_fixed_fee').is('deleted_at', null),
       supabase.from('tenants').select('id, full_name, company_id, room_id').is('deleted_at', null),
     ])
-    setCharges(ch || []); setCompanies(co || []); setProperties(pr || []); setRooms(rm || []); setTenants(tn || [])
+    setCharges(ch || []); setCompanies(co as Company[] || []); setProperties(pr as Property[] || []); setRooms(rm as Room[] || []); setTenants(tn as Tenant[] || [])
     setLoading(false)
   }, [])
 

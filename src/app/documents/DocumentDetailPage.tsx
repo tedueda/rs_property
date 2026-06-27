@@ -159,7 +159,7 @@ export function DocumentDetailPage() {
     const mapping = tableMap[type]
     if (!mapping) { setTargetOptions([]); return }
     const { data } = await supabase.from(mapping.table).select(`id, ${mapping.labelCol}`).is('deleted_at', null).limit(50)
-    setTargetOptions((data || []).map((r: Record<string, string>) => ({ id: r.id, label: r[mapping.labelCol] || r.id })))
+    setTargetOptions(((data || []) as unknown as Record<string, unknown>[]).map((r) => ({ id: String(r.id), label: String(r[mapping.labelCol] || r.id) })))
   }, [])
 
   const handleAddLink = async () => {

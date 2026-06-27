@@ -168,6 +168,74 @@ export function maskAccountNumber(num: string): string {
   return '****' + num.slice(-4)
 }
 
+export const UNIT_STATUSES = {
+  vacant: { label: '空室', color: 'bg-green-100 text-green-800' },
+  occupied: { label: '入居中', color: 'bg-blue-100 text-blue-800' },
+  reserved: { label: '予約済', color: 'bg-yellow-100 text-yellow-800' },
+  maintenance: { label: 'メンテナンス', color: 'bg-orange-100 text-orange-800' },
+  retired: { label: '退去済', color: 'bg-gray-100 text-gray-800' },
+} as const
+
+export const APPLICATION_STATUSES: Record<string, { label: string; color: string }> = {
+  draft: { label: '下書き', color: 'bg-gray-100 text-gray-800' },
+  submitted: { label: '申込済', color: 'bg-blue-100 text-blue-800' },
+  screening: { label: '審査中', color: 'bg-yellow-100 text-yellow-800' },
+  approved: { label: '承認', color: 'bg-green-100 text-green-800' },
+  rejected: { label: '却下', color: 'bg-red-100 text-red-800' },
+  cancelled: { label: 'キャンセル', color: 'bg-gray-100 text-gray-600' },
+}
+
+export const REPAIR_STATUSES: Record<string, { label: string; color: string }> = {
+  pending: { label: '未対応', color: 'bg-gray-100 text-gray-800' },
+  in_progress: { label: '対応中', color: 'bg-blue-100 text-blue-800' },
+  waiting_parts: { label: '部材待ち', color: 'bg-yellow-100 text-yellow-800' },
+  completed: { label: '完了', color: 'bg-green-100 text-green-800' },
+  cancelled: { label: 'キャンセル', color: 'bg-gray-100 text-gray-600' },
+}
+
+export const REPAIR_PRIORITIES: Record<string, { label: string; color: string }> = {
+  low: { label: '低', color: 'bg-gray-100 text-gray-800' },
+  medium: { label: '中', color: 'bg-blue-100 text-blue-800' },
+  high: { label: '高', color: 'bg-orange-100 text-orange-800' },
+  urgent: { label: '緊急', color: 'bg-red-100 text-red-800' },
+}
+
+export const RENT_CHARGE_STATUSES: Record<string, { label: string; color: string }> = {
+  draft: { label: '下書き', color: 'bg-gray-100 text-gray-800' },
+  confirmed: { label: '確定', color: 'bg-blue-100 text-blue-800' },
+  partial_paid: { label: '一部入金', color: 'bg-orange-100 text-orange-800' },
+  paid: { label: '入金済', color: 'bg-green-100 text-green-800' },
+  overdue: { label: '滞納', color: 'bg-red-100 text-red-800' },
+  cancelled: { label: 'キャンセル', color: 'bg-gray-100 text-gray-600' },
+}
+
+export const GENDER_OPTIONS = [
+  { value: 'male', label: '男性' },
+  { value: 'female', label: '女性' },
+  { value: 'other', label: 'その他' },
+]
+
+export const HOUSING_TYPES = [
+  { value: 'owned', label: '持ち家' },
+  { value: 'rental', label: '賃貸' },
+  { value: 'public', label: '公営住宅' },
+  { value: 'company', label: '社宅' },
+  { value: 'family', label: '実家' },
+  { value: 'other', label: 'その他' },
+]
+
+export const EMPLOYMENT_TYPES = [
+  { value: 'full_time', label: '正社員' },
+  { value: 'contract', label: '契約社員' },
+  { value: 'part_time', label: 'パート・アルバイト' },
+  { value: 'dispatch', label: '派遣社員' },
+  { value: 'self_employed', label: '自営業' },
+  { value: 'executive', label: '役員' },
+  { value: 'retired', label: '無職・退職' },
+  { value: 'student', label: '学生' },
+  { value: 'other', label: 'その他' },
+]
+
 export const PREFECTURES = [
   '北海道', '青森県', '岩手県', '宮城県', '秋田県', '山形県', '福島県',
   '茨城県', '栃木県', '群馬県', '埼玉県', '千葉県', '東京都', '神奈川県',

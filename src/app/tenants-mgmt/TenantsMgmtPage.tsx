@@ -77,8 +77,8 @@ export function TenantsMgmtPage() {
       supabase.from('rooms').select('id, room_number, property_id').is('deleted_at', null).order('room_number'),
     ])
     setTenants(ts || [])
-    setCompanies(cs || [])
-    setRooms(rs || [])
+    setCompanies(cs as Company[] || [])
+    setRooms(rs as Room[] || [])
     setLoading(false)
   }, [])
 

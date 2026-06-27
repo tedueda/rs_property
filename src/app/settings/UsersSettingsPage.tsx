@@ -6,22 +6,23 @@ import { Input } from '@/components/ui/input'
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '@/components/ui/table'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
-import { Select } from '@/components/ui/select'
 import { USER_ROLES } from '@/lib/constants'
 import { Search, UserPlus, Pencil } from 'lucide-react'
-import type { UserRole } from '@/types'
+
+type SettingsUserRole = 'president' | 'accounting_manager' | 'payment_staff' | 'expense_staff' | 'viewer'
 
 const mockUsers = [
-  { id: '1', email: 'admin@rs-corp.co.jp', full_name: '管理太郎', role: 'super_admin' as UserRole },
-  { id: '2', email: 'staff1@rs-corp.co.jp', full_name: '管理花子', role: 'admin' as UserRole },
-  { id: '3', email: 'staff2@rs-corp.co.jp', full_name: '田中次郎', role: 'staff' as UserRole },
-  { id: '4', email: 'viewer@rs-corp.co.jp', full_name: '閲覧太郎', role: 'viewer' as UserRole },
+  { id: '1', email: 'admin@rs-corp.co.jp', full_name: '管理太郎', role: 'accounting_manager' as SettingsUserRole },
+  { id: '2', email: 'staff1@rs-corp.co.jp', full_name: '管理花子', role: 'payment_staff' as SettingsUserRole },
+  { id: '3', email: 'staff2@rs-corp.co.jp', full_name: '田中次郎', role: 'expense_staff' as SettingsUserRole },
+  { id: '4', email: 'viewer@rs-corp.co.jp', full_name: '閲覧太郎', role: 'viewer' as SettingsUserRole },
 ]
 
-const roleColors = {
-  super_admin: 'bg-purple-100 text-purple-800',
-  admin: 'bg-blue-100 text-blue-800',
-  staff: 'bg-green-100 text-green-800',
+const roleColors: Record<SettingsUserRole, string> = {
+  president: 'bg-purple-100 text-purple-800',
+  accounting_manager: 'bg-blue-100 text-blue-800',
+  payment_staff: 'bg-green-100 text-green-800',
+  expense_staff: 'bg-orange-100 text-orange-800',
   viewer: 'bg-gray-100 text-gray-800',
 }
 
@@ -80,9 +81,9 @@ export function UsersSettingsPage() {
             <div className="space-y-2"><Label>名前</Label><Input placeholder="氏名" /></div>
             <div className="space-y-2">
               <Label>ロール</Label>
-              <Select>
+              <select className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm">
                 {Object.entries(USER_ROLES).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
-              </Select>
+              </select>
             </div>
           </div>
           <DialogFooter>
