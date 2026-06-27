@@ -54,14 +54,14 @@ function fullToHalfAlphaNum(str: string): string {
 
 /** Convert hiragana to katakana */
 function hiraganaToKatakana(str: string): string {
-  return str.replace(/[\u3041-\u3096]/g, (ch) =>
+  return str.replace(/[ぁ-ゖ]/g, (ch) =>
     String.fromCharCode(ch.charCodeAt(0) + 0x60)
   )
 }
 
 /** Remove all whitespace (half-width, full-width, tabs) */
 function removeSpaces(str: string): string {
-  return str.replace(/[\s\u3000]+/g, '')
+  return str.replace(/[\s　]+/g, '')
 }
 
 /** Remove common symbols/punctuation */
@@ -100,7 +100,7 @@ export function normalizeNameKeepSpaces(name: string): string {
   n = fullToHalfAlphaNum(n)
   n = hiraganaToKatakana(n)
   n = removeSymbols(n)
-  n = n.replace(/[\s\u3000]+/g, ' ').trim()
+  n = n.replace(/[\s　]+/g, ' ').trim()
   n = n.toUpperCase()
   return n
 }

@@ -15,20 +15,20 @@ import {
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 
 const DEMO_BANK_BALANCES: BankAccountBalance[] = [
-  { account_id: '1', company_name: '\u6797\u5efa\u8a2d\u682a\u5f0f\u4f1a\u793e', bank_name: '\u4e09\u4e95\u4f4f\u53cb\u9280\u884c', branch_name: '\u5927\u962a\u4e2d\u592e\u652f\u5e97', account_number_masked: '****4567', current_balance: 15800000 },
-  { account_id: '2', company_name: '\u6797\u5efa\u8a2d\u682a\u5f0f\u4f1a\u793e', bank_name: '\u308a\u305d\u306a\u9280\u884c', branch_name: '\u672c\u753a\u652f\u5e97', account_number_masked: '****5678', current_balance: 8200000 },
-  { account_id: '3', company_name: 'N\u30fbY\u30b3\u30fc\u30dd\u30ec\u30fc\u30b7\u30e7\u30f3', bank_name: '\u4e09\u83f1UFJ\u9280\u884c', branch_name: '\u6885\u7530\u652f\u5e97', account_number_masked: '****6789', current_balance: 12500000 },
-  { account_id: '4', company_name: '\u682a\u5f0f\u4f1a\u793e\u30aa\u30fc\u30ca\u30fc\u30ba', bank_name: '\u95a2\u897f\u307f\u3089\u3044\u9280\u884c', branch_name: '\u5929\u738b\u5bfa\u652f\u5e97', account_number_masked: '****7890', current_balance: 3200000 },
-  { account_id: '5', company_name: '\u682a\u5f0f\u4f1a\u793e\u7167', bank_name: '\u4e09\u4e95\u4f4f\u53cb\u9280\u884c', branch_name: '\u96e3\u6ce2\u652f\u5e97', account_number_masked: '****8901', current_balance: 6700000 },
-  { account_id: '6', company_name: '\u682a\u5f0f\u4f1a\u793eA', bank_name: '\u6c60\u7530\u6cc9\u5dde\u9280\u884c', branch_name: '\u5832\u652f\u5e97', account_number_masked: '****9012', current_balance: 2100000 },
+  { account_id: '1', company_name: '林建設株式会社', bank_name: '三井住友銀行', branch_name: '大阪中央支店', account_number_masked: '****4567', current_balance: 15800000 },
+  { account_id: '2', company_name: '林建設株式会社', bank_name: 'りそな銀行', branch_name: '本町支店', account_number_masked: '****5678', current_balance: 8200000 },
+  { account_id: '3', company_name: 'N・Yコーポレーション', bank_name: '三菱UFJ銀行', branch_name: '梅田支店', account_number_masked: '****6789', current_balance: 12500000 },
+  { account_id: '4', company_name: '株式会社オーナーズ', bank_name: '関西みらい銀行', branch_name: '天王寺支店', account_number_masked: '****7890', current_balance: 3200000 },
+  { account_id: '5', company_name: '株式会社照', bank_name: '三井住友銀行', branch_name: '難波支店', account_number_masked: '****8901', current_balance: 6700000 },
+  { account_id: '6', company_name: '株式会社A', bank_name: '池田泉州銀行', branch_name: '堲支店', account_number_masked: '****9012', current_balance: 2100000 },
 ]
 
 const DEMO_REPAYMENT_SCHEDULE: RepaymentSchedule[] = [
-  { id: '1', company_name: '\u6797\u5efa\u8a2d\u682a\u5f0f\u4f1a\u793e', lender_name: '\u4e09\u4e95\u4f4f\u53cb\u9280\u884c', monthly_repayment_amount: 500000, withdrawal_day: 27, next_withdrawal_date: '2026-04-27', account_balance: 15800000, is_at_risk: false },
-  { id: '2', company_name: '\u6797\u5efa\u8a2d\u682a\u5f0f\u4f1a\u793e', lender_name: '\u308a\u305d\u306a\u9280\u884c', monthly_repayment_amount: 350000, withdrawal_day: 25, next_withdrawal_date: '2026-04-25', account_balance: 8200000, is_at_risk: false },
-  { id: '3', company_name: 'N\u30fbY\u30b3\u30fc\u30dd\u30ec\u30fc\u30b7\u30e7\u30f3', lender_name: '\u4e09\u83f1UFJ\u9280\u884c', monthly_repayment_amount: 800000, withdrawal_day: 10, next_withdrawal_date: '2026-05-10', account_balance: 12500000, is_at_risk: false },
-  { id: '4', company_name: '\u682a\u5f0f\u4f1a\u793e\u30aa\u30fc\u30ca\u30fc\u30ba', lender_name: '\u65e5\u672c\u653f\u7b56\u91d1\u878d\u516c\u5eab', monthly_repayment_amount: 200000, withdrawal_day: 15, next_withdrawal_date: '2026-04-15', account_balance: 3200000, is_at_risk: false },
-  { id: '5', company_name: '\u682a\u5f0f\u4f1a\u793e\u7167', lender_name: '\u4e09\u4e95\u4f4f\u53cb\u9280\u884c', monthly_repayment_amount: 450000, withdrawal_day: 27, next_withdrawal_date: '2026-04-27', account_balance: 6700000, is_at_risk: false },
+  { id: '1', company_name: '林建設株式会社', lender_name: '三井住友銀行', monthly_repayment_amount: 500000, withdrawal_day: 27, next_withdrawal_date: '2026-04-27', account_balance: 15800000, is_at_risk: false },
+  { id: '2', company_name: '林建設株式会社', lender_name: 'りそな銀行', monthly_repayment_amount: 350000, withdrawal_day: 25, next_withdrawal_date: '2026-04-25', account_balance: 8200000, is_at_risk: false },
+  { id: '3', company_name: 'N・Yコーポレーション', lender_name: '三菱UFJ銀行', monthly_repayment_amount: 800000, withdrawal_day: 10, next_withdrawal_date: '2026-05-10', account_balance: 12500000, is_at_risk: false },
+  { id: '4', company_name: '株式会社オーナーズ', lender_name: '日本政策金融公庫', monthly_repayment_amount: 200000, withdrawal_day: 15, next_withdrawal_date: '2026-04-15', account_balance: 3200000, is_at_risk: false },
+  { id: '5', company_name: '株式会社照', lender_name: '三井住友銀行', monthly_repayment_amount: 450000, withdrawal_day: 27, next_withdrawal_date: '2026-04-27', account_balance: 6700000, is_at_risk: false },
 ]
 
 const daysUntilDate = (dateStr: string) => Math.ceil((new Date(dateStr).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
@@ -37,20 +37,20 @@ interface ExpiringContract { id: string; title: string; company_name: string; co
 interface RecentUpload { id: string; file_name: string; created_at: string; status: string }
 
 const DEMO_EXPIRING_CONTRACTS: ExpiringContract[] = [
-  { id: '3', title: 'NY\u30b3\u30fc\u30dd \u4fdd\u8a3c\u4f1a\u793e\u5951\u7d04', company_name: 'N\u30fbY\u30b3\u30fc\u30dd\u30ec\u30fc\u30b7\u30e7\u30f3\u682a\u5f0f\u4f1a\u793e', contract_end_date: '2026-05-31', days_remaining: daysUntilDate('2026-05-31') },
-  { id: '1', title: '\u6797\u5efa\u8a2d \u8cc3\u8cb8\u501f\u5951\u7d04\u66f8 101\u53f7\u5ba4', company_name: '\u6797\u5efa\u8a2d\u682a\u5f0f\u4f1a\u793e', contract_end_date: '2026-08-31', days_remaining: daysUntilDate('2026-08-31') },
-  { id: '4', title: '\u30aa\u30fc\u30ca\u30fc\u30ba \u4e8b\u52d9\u6240\u8cc3\u8cb8\u5951\u7d04', company_name: '\u682a\u5f0f\u4f1a\u793e\u30aa\u30fc\u30ca\u30fc\u30ba', contract_end_date: '2027-03-31', days_remaining: daysUntilDate('2027-03-31') },
+  { id: '3', title: 'NYコーポ 保証会社契約', company_name: 'N・Yコーポレーション株式会社', contract_end_date: '2026-05-31', days_remaining: daysUntilDate('2026-05-31') },
+  { id: '1', title: '林建設 賃貸借契約書 101号室', company_name: '林建設株式会社', contract_end_date: '2026-08-31', days_remaining: daysUntilDate('2026-08-31') },
+  { id: '4', title: 'オーナーズ 事務所賃貸契約', company_name: '株式会社オーナーズ', contract_end_date: '2027-03-31', days_remaining: daysUntilDate('2027-03-31') },
 ]
 
 const DEMO_RECENT_UPLOADS: RecentUpload[] = [
-  { id: '1', file_name: '\u901a\u5e33_\u6797\u5efa\u8a2d_202604.pdf', created_at: '2026-04-08', status: 'confirmed' },
-  { id: '2', file_name: '\u9818\u53ce\u66f8_\u4fee\u7e55\u5de5\u4e8b.jpg', created_at: '2026-04-06', status: 'review_pending' },
-  { id: '3', file_name: '\u5165\u5c45\u5951\u7d04\u66f8_\u4f50\u85e4.pdf', created_at: '2026-04-04', status: 'extracted' },
+  { id: '1', file_name: '通帳_林建設_202604.pdf', created_at: '2026-04-08', status: 'confirmed' },
+  { id: '2', file_name: '領収書_修繕工事.jpg', created_at: '2026-04-06', status: 'review_pending' },
+  { id: '3', file_name: '入居契約書_佐藤.pdf', created_at: '2026-04-04', status: 'extracted' },
 ]
 
 const UPLOAD_STATUS_LABELS: Record<string, string> = {
-  uploaded: '\u53d6\u8fbc\u6e08', processing: '\u51e6\u7406\u4e2d', extracted: '\u62bd\u51fa\u6e08',
-  review_pending: '\u78ba\u8a8d\u5f85\u3061', confirmed: '\u78ba\u5b9a\u6e08', error: '\u30a8\u30e9\u30fc',
+  uploaded: '取込済', processing: '処理中', extracted: '抽出済',
+  review_pending: '確認待ち', confirmed: '確定済', error: 'エラー',
 }
 
 interface PanelItem {
@@ -61,27 +61,27 @@ interface PanelItem {
 }
 
 const PANEL_ITEMS: PanelItem[] = [
-  { label: '\u5bb6\u8cc3\u8acb\u6c42\u7ba1\u7406', icon: Banknote, path: '/charges', description: '\u6708\u6b21\u8acb\u6c42\u306e\u7ba1\u7406' },
-  { label: '\u5165\u91d1\u7ba1\u7406', icon: CreditCard, path: '/payments', description: '\u5165\u91d1\u7167\u5408\u30fb\u7ba1\u7406' },
-  { label: '\u672a\u53ce\u30fb\u6ede\u7d0d\u7ba1\u7406', icon: AlertTriangle, path: '/arrears-mgmt', description: '\u672a\u53ce\u91d1\u306e\u8ffd\u8de1' },
-  { label: '\u7d4c\u8cbb\u7ba1\u7406', icon: Receipt, path: '/expenses', description: '\u7d4c\u8cbb\u306e\u8a18\u9332\u30fb\u7ba1\u7406' },
-  { label: '\u7d66\u4e0e\u7ba1\u7406', icon: Wallet, path: '/payroll', description: '\u7d66\u4e0e\u8a08\u7b97\u30fb\u652f\u6255\u3044' },
-  { label: '\u8fd4\u6e08\u7ba1\u7406', icon: CalendarClock, path: '/loan-repayments', description: '\u501f\u5165\u8fd4\u6e08\u4e88\u5b9a' },
-  { label: '\u9280\u884c\u53d6\u5f15', icon: ArrowLeftRight, path: '/bank-transactions', description: '\u5165\u51fa\u91d1\u660e\u7d30' },
-  { label: '\u8cc7\u91d1\u79fb\u52d5', icon: Send, path: '/fund-transfers', description: '\u53e3\u5ea7\u9593\u306e\u632f\u66ff' },
-  { label: '\u66f8\u985e\u7ba1\u7406', icon: FileText, path: '/documents', description: '\u5951\u7d04\u66f8\u30fb\u66f8\u985e' },
-  { label: '\u66f4\u65b0\u671f\u9650', icon: Bell, path: '/document-alerts', description: '\u671f\u9650\u30a2\u30e9\u30fc\u30c8' },
-  { label: '\u53d6\u8fbc\u78ba\u8a8d', icon: ClipboardCheck, path: '/import-review', description: '\u53d6\u8fbc\u30c7\u30fc\u30bf\u78ba\u8a8d' },
-  { label: '\u53d6\u8fbc\u5c65\u6b74', icon: History, path: '/import-history', description: '\u904e\u53bb\u306e\u53d6\u8fbc\u8a18\u9332' },
-  { label: '\u6708\u6b21\u53ce\u652f', icon: BarChart3, path: '/monthly-income-expense', description: '\u6708\u6b21P&L' },
-  { label: '\u4f1a\u793e\u7ba1\u7406', icon: Building2, path: '/companies', description: '\u30de\u30b9\u30bf\u7ba1\u7406' },
-  { label: '\u7269\u4ef6\u7ba1\u7406', icon: Home, path: '/properties-mgmt', description: '\u7269\u4ef6\u60c5\u5831' },
-  { label: '\u90e8\u5c4b\u7ba1\u7406', icon: DoorOpen, path: '/rooms', description: '\u90e8\u5c4b\u60c5\u5831' },
-  { label: '\u5165\u5c45\u8005\u7ba1\u7406', icon: Users, path: '/tenants-mgmt', description: '\u5165\u5c45\u8005\u60c5\u5831' },
-  { label: '\u5f93\u696d\u54e1\u7ba1\u7406', icon: UserCog, path: '/employees', description: '\u5f93\u696d\u54e1\u30de\u30b9\u30bf' },
-  { label: '\u9280\u884c\u53e3\u5ea7', icon: Landmark, path: '/bank-accounts', description: '\u53e3\u5ea7\u30de\u30b9\u30bf' },
-  { label: '\u7d4c\u8cbb\u30ab\u30c6\u30b4\u30ea', icon: FolderOpen, path: '/expense-categories', description: '\u30ab\u30c6\u30b4\u30ea\u7ba1\u7406' },
-  { label: '\u66f8\u985e\u30ab\u30c6\u30b4\u30ea', icon: FolderOpen, path: '/document-categories', description: '\u30ab\u30c6\u30b4\u30ea\u7ba1\u7406' },
+  { label: '家賃請求管理', icon: Banknote, path: '/charges', description: '月次請求の管理' },
+  { label: '入金管理', icon: CreditCard, path: '/payments', description: '入金照合・管理' },
+  { label: '未収・滞納管理', icon: AlertTriangle, path: '/arrears-mgmt', description: '未収金の追跡' },
+  { label: '経費管理', icon: Receipt, path: '/expenses', description: '経費の記録・管理' },
+  { label: '給与管理', icon: Wallet, path: '/payroll', description: '給与計算・支払い' },
+  { label: '返済管理', icon: CalendarClock, path: '/loan-repayments', description: '借入返済予定' },
+  { label: '銀行取引', icon: ArrowLeftRight, path: '/bank-transactions', description: '入出金明細' },
+  { label: '資金移動', icon: Send, path: '/fund-transfers', description: '口座間の振替' },
+  { label: '書類管理', icon: FileText, path: '/documents', description: '契約書・書類' },
+  { label: '更新期限', icon: Bell, path: '/document-alerts', description: '期限アラート' },
+  { label: '取込確認', icon: ClipboardCheck, path: '/import-review', description: '取込データ確認' },
+  { label: '取込履歴', icon: History, path: '/import-history', description: '過去の取込記録' },
+  { label: '月次収支', icon: BarChart3, path: '/monthly-income-expense', description: '月次P&L' },
+  { label: '会社管理', icon: Building2, path: '/companies', description: 'マスタ管理' },
+  { label: '物件管理', icon: Home, path: '/properties-mgmt', description: '物件情報' },
+  { label: '部屋管理', icon: DoorOpen, path: '/rooms', description: '部屋情報' },
+  { label: '入居者管理', icon: Users, path: '/tenants-mgmt', description: '入居者情報' },
+  { label: '従業員管理', icon: UserCog, path: '/employees', description: '従業員マスタ' },
+  { label: '銀行口座', icon: Landmark, path: '/bank-accounts', description: '口座マスタ' },
+  { label: '経費カテゴリ', icon: FolderOpen, path: '/expense-categories', description: 'カテゴリ管理' },
+  { label: '書類カテゴリ', icon: FolderOpen, path: '/document-categories', description: 'カテゴリ管理' },
 ]
 
 function StatCard({ title, value, icon, description, variant }: { title: string; value: string; icon: React.ReactNode; description?: string; variant?: 'danger' }) {
@@ -203,7 +203,7 @@ export function DashboardPage() {
 
   const chartData = Object.values(
     bankBalances.reduce<Record<string, { name: string; balance: number }>>((acc, b) => {
-      const name = b.company_name.replace('\u682a\u5f0f\u4f1a\u793e', '(\u682a)').substring(0, 12)
+      const name = b.company_name.replace('株式会社', '(株)').substring(0, 12)
       if (!acc[b.company_name]) acc[b.company_name] = { name, balance: 0 }
       acc[b.company_name].balance += b.current_balance
       return acc
@@ -217,8 +217,8 @@ export function DashboardPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">{'\u30c0\u30c3\u30b7\u30e5\u30dc\u30fc\u30c9'}</h1>
-        <p className="text-muted-foreground mt-1">{'\u30b0\u30eb\u30fc\u30d7\u5168\u4f53\u306e\u8cc7\u91d1\u7ba1\u7406\u30b5\u30de\u30ea\u30fc'}</p>
+        <h1 className="text-2xl font-bold tracking-tight">{'ダッシュボード'}</h1>
+        <p className="text-muted-foreground mt-1">{'グループ全体の資金管理サマリー'}</p>
       </div>
 
       {/* Section 1: File Import Area */}
@@ -233,17 +233,17 @@ export function DashboardPage() {
           >
             <Upload className={`h-12 w-12 ${isDragging ? 'text-blue-500' : 'text-gray-400'}`} />
             <div className="text-center">
-              <p className="text-lg font-semibold">{isDragging ? '\u30d5\u30a1\u30a4\u30eb\u3092\u30c9\u30ed\u30c3\u30d7\u3057\u3066\u304f\u3060\u3055\u3044' : '\u30d5\u30a1\u30a4\u30eb\u53d6\u8fbc'}</p>
-              <p className="text-sm text-muted-foreground mt-1">{'\u30c9\u30e9\u30c3\u30b0&\u30c9\u30ed\u30c3\u30d7 \u307e\u305f\u306f \u30af\u30ea\u30c3\u30af\u3057\u3066\u30d5\u30a1\u30a4\u30eb\u3092\u9078\u629e'}</p>
-              <p className="text-xs text-muted-foreground mt-1">{'\u5bfe\u5fdc\u5f62\u5f0f: JPG, PNG, HEIF, PDF, Excel, Word'}</p>
+              <p className="text-lg font-semibold">{isDragging ? 'ファイルをドロップしてください' : 'ファイル取込'}</p>
+              <p className="text-sm text-muted-foreground mt-1">{'ドラッグ&ドロップ または クリックしてファイルを選択'}</p>
+              <p className="text-xs text-muted-foreground mt-1">{'対応形式: JPG, PNG, HEIF, PDF, Excel, Word'}</p>
             </div>
             <input ref={fileInputRef} type="file" className="hidden" accept={ALLOWED_FILE_EXTENSIONS} multiple onChange={handleFileSelect} />
             <div className="flex gap-2 mt-2">
               <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); navigate('/file-upload') }}>
-                <Upload className="h-4 w-4 mr-1" />{'\u30d5\u30a1\u30a4\u30eb\u53d6\u8fbc\u753b\u9762\u3078'}
+                <Upload className="h-4 w-4 mr-1" />{'ファイル取込画面へ'}
               </Button>
               <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); navigate('/import-history') }}>
-                <History className="h-4 w-4 mr-1" />{'\u53d6\u8fbc\u5c65\u6b74'}
+                <History className="h-4 w-4 mr-1" />{'取込履歴'}
               </Button>
             </div>
           </div>
@@ -252,26 +252,26 @@ export function DashboardPage() {
 
       {/* Section 2: Important KPIs */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-        <StatCard title={'\u9280\u884c\u7dcf\u6b8b\u9ad8'} value={formatCurrency(bankBalances.reduce((s, b) => s + b.current_balance, 0))} icon={<Landmark className="h-4 w-4" />} />
-        <StatCard title={'\u6708\u6b21\u8fd4\u6e08\u7dcf\u984d'} value={formatCurrency(repaymentSchedule.reduce((s, r) => s + r.monthly_repayment_amount, 0))} icon={<CalendarClock className="h-4 w-4" />} variant="danger" />
-        <StatCard title={'\u672a\u53ce\u7dcf\u984d'} value={formatCurrency(arrearsTotal)} icon={<AlertTriangle className="h-4 w-4" />} description={`${arrearsCount}\u4ef6`} variant="danger" />
-        <StatCard title={'\u78ba\u8a8d\u5f85\u3061\u53d6\u8fbc'} value={`${pendingImports}\u4ef6`} icon={<ClipboardCheck className="h-4 w-4" />} />
-        <StatCard title={'\u7d4c\u8cbb+\u7d66\u4e0e'} value={formatCurrency(expenseTotal + payrollTotal)} icon={<Receipt className="h-4 w-4" />} />
+        <StatCard title={'銀行総残高'} value={formatCurrency(bankBalances.reduce((s, b) => s + b.current_balance, 0))} icon={<Landmark className="h-4 w-4" />} />
+        <StatCard title={'月次返済総額'} value={formatCurrency(repaymentSchedule.reduce((s, r) => s + r.monthly_repayment_amount, 0))} icon={<CalendarClock className="h-4 w-4" />} variant="danger" />
+        <StatCard title={'未収総額'} value={formatCurrency(arrearsTotal)} icon={<AlertTriangle className="h-4 w-4" />} description={`${arrearsCount}件`} variant="danger" />
+        <StatCard title={'確認待ち取込'} value={`${pendingImports}件`} icon={<ClipboardCheck className="h-4 w-4" />} />
+        <StatCard title={'経費+給与'} value={formatCurrency(expenseTotal + payrollTotal)} icon={<Receipt className="h-4 w-4" />} />
       </div>
 
       {/* Bank Balances + Chart */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
-          <CardHeader><CardTitle className="text-base flex items-center gap-2"><Landmark className="h-4 w-4" />{'\u4f1a\u793e\u5225\u9280\u884c\u53e3\u5ea7\u6b8b\u9ad8'}</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-base flex items-center gap-2"><Landmark className="h-4 w-4" />{'会社別銀行口座残高'}</CardTitle></CardHeader>
           <CardContent className="p-0">
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>{'\u4f1a\u793e\u540d'}</TableHead>
-                    <TableHead>{'\u9280\u884c\u540d'}</TableHead>
-                    <TableHead>{'\u53e3\u5ea7\u756a\u53f7'}</TableHead>
-                    <TableHead className="text-right">{'\u6b8b\u9ad8'}</TableHead>
+                    <TableHead>{'会社名'}</TableHead>
+                    <TableHead>{'銀行名'}</TableHead>
+                    <TableHead>{'口座番号'}</TableHead>
+                    <TableHead className="text-right">{'残高'}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -290,20 +290,20 @@ export function DashboardPage() {
         </Card>
 
         <Card>
-          <CardHeader><CardTitle className="text-base">{'\u4f1a\u793e\u5225\u6b8b\u9ad8\u6bd4\u8f03'}</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-base">{'会社別残高比較'}</CardTitle></CardHeader>
           <CardContent>
             {chartData.length > 0 ? (
               <ResponsiveContainer width="100%" height={250}>
                 <BarChart data={chartData}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="name" tick={{ fontSize: 10 }} />
-                  <YAxis tick={{ fontSize: 11 }} tickFormatter={(v: number) => `${(v / 10000).toFixed(0)}\u4e07`} />
+                  <YAxis tick={{ fontSize: 11 }} tickFormatter={(v: number) => `${(v / 10000).toFixed(0)}万`} />
                   <Tooltip formatter={(value: number) => formatCurrency(value)} />
                   <Legend />
-                  <Bar dataKey="balance" name={'\u6b8b\u9ad8'} fill="#3b82f6" radius={[2, 2, 0, 0]} />
+                  <Bar dataKey="balance" name={'残高'} fill="#3b82f6" radius={[2, 2, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
-            ) : <p className="text-center text-muted-foreground py-8">{'\u30c7\u30fc\u30bf\u304c\u3042\u308a\u307e\u305b\u3093'}</p>}
+            ) : <p className="text-center text-muted-foreground py-8">{'データがありません'}</p>}
           </CardContent>
         </Card>
       </div>
@@ -311,21 +311,21 @@ export function DashboardPage() {
       {/* Repayment + Expiring Contracts + Recent Uploads */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <Card>
-          <CardHeader><CardTitle className="text-base flex items-center gap-2"><CalendarClock className="h-4 w-4" />{'\u4eca\u6708\u306e\u8fd4\u6e08\u4e88\u5b9a'}</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-base flex items-center gap-2"><CalendarClock className="h-4 w-4" />{'今月の返済予定'}</CardTitle></CardHeader>
           <CardContent className="p-0">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-12">{'\u5f15\u843d\u65e5'}</TableHead>
-                  <TableHead>{'\u501f\u5165\u5148'}</TableHead>
-                  <TableHead className="text-right">{'\u6708\u984d'}</TableHead>
+                  <TableHead className="w-12">{'引落日'}</TableHead>
+                  <TableHead>{'借入先'}</TableHead>
+                  <TableHead className="text-right">{'月額'}</TableHead>
                   <TableHead className="w-8"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {[...repaymentSchedule].sort((a, b) => a.withdrawal_day - b.withdrawal_day).map((r) => (
                   <TableRow key={r.id} className={r.is_at_risk ? 'bg-red-50' : undefined}>
-                    <TableCell className="font-mono text-center text-sm">{r.withdrawal_day}{'\u65e5'}</TableCell>
+                    <TableCell className="font-mono text-center text-sm">{r.withdrawal_day}{'日'}</TableCell>
                     <TableCell className="text-sm">{r.lender_name}</TableCell>
                     <TableCell className="text-right font-mono text-sm">{formatCurrency(r.monthly_repayment_amount)}</TableCell>
                     <TableCell>{r.is_at_risk && <TrendingDown className="h-4 w-4 text-red-500" />}</TableCell>
@@ -337,24 +337,24 @@ export function DashboardPage() {
         </Card>
 
         <Card>
-          <CardHeader><CardTitle className="text-base flex items-center gap-2"><Clock className="h-4 w-4" />{'\u66f4\u65b0\u671f\u9650\u304c\u8fd1\u3044\u5951\u7d04\u66f8'}</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-base flex items-center gap-2"><Clock className="h-4 w-4" />{'更新期限が近い契約書'}</CardTitle></CardHeader>
           <CardContent className="p-0">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>{'\u66f8\u985e\u540d'}</TableHead>
-                  <TableHead className="text-right">{'\u6b8b\u65e5\u6570'}</TableHead>
+                  <TableHead>{'書類名'}</TableHead>
+                  <TableHead className="text-right">{'残日数'}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {expiringContracts.length === 0 ? (
-                  <TableRow><TableCell colSpan={2} className="text-center py-4 text-muted-foreground">{'\u8a72\u5f53\u306a\u3057'}</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={2} className="text-center py-4 text-muted-foreground">{'該当なし'}</TableCell></TableRow>
                 ) : expiringContracts.map((c) => (
                   <TableRow key={c.id}>
                     <TableCell className="text-sm font-medium">{c.title}</TableCell>
                     <TableCell className="text-right">
                       <span className={c.days_remaining <= 0 ? 'text-red-600 font-bold' : c.days_remaining <= 90 ? 'text-red-600 font-medium' : 'text-yellow-600'}>
-                        {c.days_remaining < 0 ? `${Math.abs(c.days_remaining)}\u65e5\u8d85\u904e` : `${c.days_remaining}\u65e5`}
+                        {c.days_remaining < 0 ? `${Math.abs(c.days_remaining)}日超過` : `${c.days_remaining}日`}
                       </span>
                     </TableCell>
                   </TableRow>
@@ -365,18 +365,18 @@ export function DashboardPage() {
         </Card>
 
         <Card>
-          <CardHeader><CardTitle className="text-base flex items-center gap-2"><Upload className="h-4 w-4" />{'\u6700\u8fd1\u306e\u53d6\u8fbc'}</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-base flex items-center gap-2"><Upload className="h-4 w-4" />{'最近の取込'}</CardTitle></CardHeader>
           <CardContent className="p-0">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>{'\u30d5\u30a1\u30a4\u30eb\u540d'}</TableHead>
-                  <TableHead>{'\u72b6\u614b'}</TableHead>
+                  <TableHead>{'ファイル名'}</TableHead>
+                  <TableHead>{'状態'}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {recentUploads.length === 0 ? (
-                  <TableRow><TableCell colSpan={2} className="text-center py-4 text-muted-foreground">{'\u30c7\u30fc\u30bf\u306a\u3057'}</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={2} className="text-center py-4 text-muted-foreground">{'データなし'}</TableCell></TableRow>
                 ) : recentUploads.map((u) => (
                   <TableRow key={u.id}>
                     <TableCell className="text-sm"><div className="flex items-center gap-1"><FileText className="h-3 w-3 text-muted-foreground shrink-0" /><span className="truncate">{u.file_name}</span></div></TableCell>
@@ -391,7 +391,7 @@ export function DashboardPage() {
 
       {/* Section 3: Panel Menu */}
       <div>
-        <h2 className="text-lg font-semibold mb-3">{'\u6a5f\u80fd\u30e1\u30cb\u30e5\u30fc'}</h2>
+        <h2 className="text-lg font-semibold mb-3">{'機能メニュー'}</h2>
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-7 gap-3">
           {PANEL_ITEMS.map((item) => (
             <Card key={item.path} className="cursor-pointer hover:bg-gray-50 hover:border-blue-300 transition-colors" onClick={() => navigate(item.path)}>
