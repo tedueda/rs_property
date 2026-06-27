@@ -72,7 +72,23 @@ export function PropertyLedgerPage() {
 
   const openEdit = (record: LedgerRecord) => {
     setEditId(record.id)
-    setForm({ ...record })
+    setForm({
+      property_name: record.property_name,
+      created_date: record.created_date,
+      tenant_name: record.tenant_name,
+      phone: record.phone,
+      guarantor: record.guarantor,
+      move_in_date: record.move_in_date,
+      rent: record.rent,
+      guarantee_company: record.guarantee_company,
+      house_cleaning_fee: record.house_cleaning_fee,
+      water_fee: record.water_fee,
+      common_fee: record.common_fee,
+      deposit: record.deposit,
+      deduction: record.deduction,
+      penalty: record.penalty,
+      notes: record.notes,
+    })
     setShowForm(true)
   }
 
