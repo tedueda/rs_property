@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
+import { supabase, isDemoMode } from '@/lib/supabase/client'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -34,9 +35,28 @@ export function PropertyLedgerPage() {
   const [importing, setImporting] = useState(false)
   const [importError, setImportError] = useState<string | null>(null)
   const [showDetail, setShowDetail] = useState<LedgerRecord | null>(null)
+  const [loading, setLoading] = useState(true)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  const fetchRecords = useCallback(async () => {
+    setLoading(true)
+    if (isDemoMode) {
+      setLoading(false)
+      return
+    }
+    const { data, error } = await supabase
+      .from('property_ledgers')
+      .select('*')
+      .is('deleted_at', null)
+      .order('created_at', { ascending: false })
+    if (!error && data) {
+      setRecords(data as LedgerRecord[])
+    }
+    setLoading(false)
+  }, [])
+
   useEffect(() => { document.title = '物件管理台帳 - RS不動産管理' }, [])
+  useEffect(() => { fetchRecords() }, [fetchRecords])
 
   const filtered = records.filter(r =>
     r.property_name.includes(search) ||
@@ -56,18 +76,33 @@ export function PropertyLedgerPage() {
     setShowForm(true)
   }
 
-  const handleSave = () => {
+  const handleSave = async () => {
+    if (isDemoMode) {
+      if (editId) {
+        setRecords(prev => prev.map(r => r.id === editId ? { ...form, id: editId } : r))
+      } else {
+        setRecords(prev => [...prev, { ...form, id: generateId() }])
+      }
+      setShowForm(false)
+      return
+    }
     if (editId) {
-      setRecords(prev => prev.map(r => r.id === editId ? { ...form, id: editId } : r))
+      await supabase.from('property_ledgers').update({ ...form }).eq('id', editId)
     } else {
-      setRecords(prev => [...prev, { ...form, id: generateId() }])
+      await supabase.from('property_ledgers').insert({ ...form })
     }
     setShowForm(false)
+    fetchRecords()
   }
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (!confirm('この台帳を削除しますか？')) return
-    setRecords(prev => prev.filter(r => r.id !== id))
+    if (isDemoMode) {
+      setRecords(prev => prev.filter(r => r.id !== id))
+      return
+    }
+    await supabase.from('property_ledgers').update({ deleted_at: new Date().toISOString() }).eq('id', id)
+    fetchRecords()
   }
 
   const handleFileImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -85,7 +120,13 @@ export function PropertyLedgerPage() {
           newRecords.push({ ...data, id: generateId() })
         }
       }
-      setRecords(prev => [...prev, ...newRecords])
+      if (!isDemoMode && newRecords.length > 0) {
+        const rows = newRecords.map(({ id: _id, ...rest }) => rest)
+        await supabase.from('property_ledgers').insert(rows)
+        await fetchRecords()
+      } else {
+        setRecords(prev => [...prev, ...newRecords])
+      }
     } catch (err) {
       setImportError(err instanceof Error ? err.message : 'インポートに失敗しました')
     } finally {
@@ -174,7 +215,13 @@ export function PropertyLedgerPage() {
         </CardContent>
       </Card>
 
-      {records.length === 0 ? (
+      {loading ? (
+        <Card>
+          <CardContent className="p-12 text-center">
+            <Loader2 className="h-8 w-8 mx-auto animate-spin text-gray-400" />
+          </CardContent>
+        </Card>
+      ) : records.length === 0 ? (
         <Card>
           <CardContent className="p-12 text-center">
             <FileText className="h-10 w-10 mx-auto mb-3 text-muted-foreground" />
