@@ -600,6 +600,202 @@ export interface ImportLog {
 }
 
 // ============================================================
+// Unit Types (部屋/ユニット - Supabase units table)
+// ============================================================
+export type UnitStatus = 'vacant' | 'occupied' | 'reserved' | 'maintenance' | 'retired'
+
+export interface Unit {
+  id: string
+  property_id: string
+  unit_number: string
+  floor?: number
+  layout?: string
+  area_sqm?: number
+  rent_amount?: number
+  management_fee?: number
+  water_fee?: number
+  parking_fee?: number
+  deposit?: number
+  key_money?: number
+  guarantee_deposit?: number
+  cancellation_fee?: number
+  status: UnitStatus
+  created_at: string
+  updated_at: string
+  deleted_at?: string
+  created_by?: string
+  updated_by?: string
+  property?: Property
+}
+
+// ============================================================
+// Applicant Types (申込者)
+// ============================================================
+export interface Applicant {
+  id: string
+  application_id: string
+  full_name: string
+  full_name_kana?: string
+  birth_date?: string
+  gender?: string
+  phone?: string
+  email?: string
+  current_address?: string
+  created_at: string
+  updated_at: string
+}
+
+// ============================================================
+// Application Types (申込)
+// ============================================================
+export type ApplicationStatus = 'draft' | 'submitted' | 'screening' | 'approved' | 'rejected' | 'cancelled'
+
+export interface Application {
+  id: string
+  property_id?: string
+  unit_id?: string
+  application_number?: string
+  reception_date?: string
+  rent_amount?: number
+  management_fee?: number
+  deposit?: number
+  key_money?: number
+  status: ApplicationStatus
+  notes?: string
+  created_at: string
+  updated_at: string
+  deleted_at?: string
+  created_by?: string
+  updated_by?: string
+  property?: Property
+  unit?: Unit
+  applicant?: Applicant
+}
+
+// ============================================================
+// Contract Types (契約)
+// ============================================================
+export type ContractStatus = 'draft' | 'active' | 'expired' | 'terminated'
+
+export interface Contract {
+  id: string
+  property_id?: string
+  unit_id?: string
+  tenant_id?: string
+  contract_type?: 'new' | 'renewal'
+  start_date?: string
+  end_date?: string
+  rent_amount?: number
+  management_fee?: number
+  pdf_file_path?: string
+  status: ContractStatus
+  notes?: string
+  created_at: string
+  updated_at: string
+  deleted_at?: string
+  created_by?: string
+  updated_by?: string
+  property?: Property
+  unit?: Unit
+}
+
+// ============================================================
+// Repair Types (修繕)
+// ============================================================
+export type RepairStatus = 'pending' | 'in_progress' | 'waiting_parts' | 'completed' | 'cancelled'
+export type RepairPriority = 'low' | 'medium' | 'high' | 'urgent'
+
+export interface Repair {
+  id: string
+  property_id?: string
+  unit_id?: string
+  title: string
+  description?: string
+  status: RepairStatus
+  priority: RepairPriority
+  received_date?: string
+  completion_date?: string
+  staff_name?: string
+  vendor_name?: string
+  estimated_cost?: number
+  actual_cost?: number
+  notes?: string
+  created_at: string
+  updated_at: string
+  deleted_at?: string
+  created_by?: string
+  updated_by?: string
+  property?: Property
+  unit?: Unit
+}
+
+// ============================================================
+// Rent Charge Types (家賃請求)
+// ============================================================
+export type RentChargeStatus = 'draft' | 'confirmed' | 'partial_paid' | 'paid' | 'overdue' | 'cancelled'
+
+export interface RentCharge {
+  id: string
+  tenant_id?: string
+  unit_id?: string
+  charge_month?: string
+  total_amount?: number
+  status: RentChargeStatus
+  notes?: string
+  created_at: string
+  updated_at: string
+  tenant?: Tenant
+  unit?: Unit & { property?: Property }
+}
+
+// ============================================================
+// Rent Payment Types (家賃入金)
+// ============================================================
+export interface RentPayment {
+  id: string
+  rent_charge_id?: string
+  payment_date?: string
+  payer_name?: string
+  amount?: number
+  payment_method?: string
+  reconciliation_status?: 'unmatched' | 'matched' | 'partial'
+  notes?: string
+  created_at: string
+  updated_at: string
+}
+
+// ============================================================
+// OCR Job Types
+// ============================================================
+export type OcrJobStatus = 'pending' | 'processing' | 'completed' | 'failed'
+
+export interface OcrJob {
+  id: string
+  company_id?: string
+  file_path: string
+  file_name: string
+  file_type?: string
+  status: OcrJobStatus
+  result_json?: Record<string, unknown>
+  error_message?: string
+  created_at: string
+  updated_at: string
+}
+
+// ============================================================
+// Dashboard Alerts Types
+// ============================================================
+export interface DashboardAlerts {
+  ocr_unconfirmed: number
+  mapping_unconfirmed: number
+  contracts_not_created: number
+  payments_unconfirmed: number
+  arrears_count: number
+  repairs_incomplete: number
+  new_templates_detected: number
+}
+
+// ============================================================
 // Phase 4: Tenant Alias Types (表記ゆれ対応)
 // ============================================================
 export interface TenantAlias {

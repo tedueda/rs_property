@@ -71,7 +71,7 @@ export function RoomsPage() {
       supabase.from('properties').select('id, name, company_id').is('deleted_at', null).order('name'),
     ])
     setRooms(rms || [])
-    setProperties(props || [])
+    setProperties(props as Property[] || [])
     setLoading(false)
   }, [])
 
@@ -93,10 +93,10 @@ export function RoomsPage() {
   const handleSave = async () => {
     if (!form.room_number.trim() || !form.property_id) return
     setSaving(true)
-    const payload = {
+    const payload: Omit<Room, 'id' | 'created_at' | 'updated_at'> = {
       property_id: form.property_id, room_number: form.room_number,
       rent: Number(form.rent), common_fee: Number(form.common_fee), water_fee: Number(form.water_fee),
-      parking_fee: Number(form.parking_fee), other_fixed_fee: Number(form.other_fixed_fee), status: form.status,
+      parking_fee: Number(form.parking_fee), other_fixed_fee: Number(form.other_fixed_fee), status: form.status as Room['status'],
     }
     if (isDemoMode) {
       if (editingId) {

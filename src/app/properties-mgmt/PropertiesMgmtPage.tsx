@@ -64,7 +64,7 @@ export function PropertiesMgmtPage() {
       supabase.from('companies').select('id, name').is('deleted_at', null).order('name'),
     ])
     setProperties(props || [])
-    setCompanies(comps || [])
+    setCompanies(comps as Company[] || [])
     setLoading(false)
   }, [])
 

@@ -61,7 +61,7 @@ export function ArrearsMgmtPage() {
       supabase.from('tenants').select('id, full_name, company_id').is('deleted_at', null),
       supabase.from('rooms').select('id, room_number, property_id').is('deleted_at', null),
     ])
-    setArrears(ar || []); setCompanies(co || []); setTenants(tn || []); setRooms(rm || [])
+    setArrears(ar || []); setCompanies(co as Company[] || []); setTenants(tn as Tenant[] || []); setRooms(rm as Room[] || [])
     setLoading(false)
   }, [])
 

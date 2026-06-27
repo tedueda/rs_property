@@ -9,7 +9,7 @@ import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { Select } from '@/components/ui/select'
+
 import { Plus, Search, Building2, Eye, Pencil, Trash2, Loader2 } from 'lucide-react'
 import { PREFECTURES } from '@/lib/constants'
 import { useProperties, createProperty, updateProperty, deleteProperty } from '@/lib/supabase/hooks'
@@ -120,17 +120,17 @@ export function PropertiesPage() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2"><Label>物件名 *</Label><Input value={editProp.name || ''} onChange={(e) => setEditProp(p => ({ ...p, name: e.target.value }))} /></div>
               <div className="space-y-2"><Label>種別</Label>
-                <Select value={editProp.property_type || ''} onChange={(e) => setEditProp(p => ({ ...p, property_type: e.target.value }))}>
+                <select value={editProp.property_type || ''} onChange={(e) => setEditProp(p => ({ ...p, property_type: e.target.value }))} className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm">
                   <option value="">選択してください</option><option value="マンション">マンション</option><option value="アパート">アパート</option><option value="一戸建て">一戸建て</option><option value="ビル">ビル</option>
-                </Select>
+                </select>
               </div>
             </div>
             <div className="grid grid-cols-3 gap-4">
               <div className="space-y-2"><Label>郵便番号</Label><Input placeholder="000-0000" value={editProp.postal_code || ''} onChange={(e) => setEditProp(p => ({ ...p, postal_code: e.target.value }))} /></div>
               <div className="space-y-2"><Label>都道府県</Label>
-                <Select value={editProp.prefecture || ''} onChange={(e) => setEditProp(p => ({ ...p, prefecture: e.target.value }))}>
+                <select value={editProp.prefecture || ''} onChange={(e) => setEditProp(p => ({ ...p, prefecture: e.target.value }))} className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm">
                   <option value="">選択</option>{PREFECTURES.map(pref => <option key={pref} value={pref}>{pref}</option>)}
-                </Select>
+                </select>
               </div>
               <div className="space-y-2"><Label>市区町村</Label><Input value={editProp.city || ''} onChange={(e) => setEditProp(p => ({ ...p, city: e.target.value }))} /></div>
             </div>

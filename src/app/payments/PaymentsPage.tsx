@@ -79,7 +79,7 @@ export function PaymentsPage() {
       supabase.from('tenants').select('id, full_name, full_name_kana, tenant_name_normalized').is('deleted_at', null),
       supabase.from('tenant_aliases').select('tenant_id, alias_name'),
     ])
-    setPayments(pm || []); setCharges(ch || [])
+    setPayments(pm || []); setCharges(ch as MonthlyCharge[] || [])
     // Build tenants with aliases for fuzzy matching
     const aliasMap = new Map<string, string[]>()
     for (const a of (aliases || [])) {

@@ -15,7 +15,7 @@ export const supabase: SupabaseClient = isDemoMode
         flowType: 'implicit',
         // Disable navigator.locks to prevent deadlocks in certain environments
         // Provide a no-op lock function that immediately executes the callback
-        lock: async (_name: string, _acquireTimeout: number, fn: () => Promise<unknown>) => {
+        lock: async <R>(_name: string, _acquireTimeout: number, fn: () => Promise<R>): Promise<R> => {
           return await fn()
         },
       },

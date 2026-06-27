@@ -87,7 +87,7 @@ export function ExpensesPage() {
       supabase.from('companies').select('id, name').is('deleted_at', null).order('name'),
       supabase.from('expense_categories').select('*').is('deleted_at', null).order('sort_order'),
     ])
-    setExpenses(exp || []); setCompanies(co || []); setCategories(cat || [])
+    setExpenses(exp || []); setCompanies(co as Company[] || []); setCategories(cat || [])
     setLoading(false)
   }, [])
 

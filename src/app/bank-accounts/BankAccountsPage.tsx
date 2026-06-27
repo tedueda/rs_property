@@ -67,7 +67,7 @@ export function BankAccountsPage() {
       supabase.from('bank_accounts').select('*').is('deleted_at', null).order('created_at', { ascending: true }),
       supabase.from('companies').select('id, name').is('deleted_at', null).order('name'),
     ])
-    setAccounts(acc || []); setCompanies(co || [])
+    setAccounts(acc || []); setCompanies(co as Company[] || [])
     setLoading(false)
   }, [])
 

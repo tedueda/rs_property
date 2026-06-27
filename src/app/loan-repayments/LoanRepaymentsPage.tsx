@@ -75,7 +75,7 @@ export function LoanRepaymentsPage() {
       supabase.from('companies').select('id, name').is('deleted_at', null).order('name'),
       supabase.from('bank_accounts').select('*').is('deleted_at', null).order('bank_name'),
     ])
-    setLoans(lr || []); setCompanies(co || []); setAccounts(acc || [])
+    setLoans(lr || []); setCompanies(co as Company[] || []); setAccounts(acc || [])
     setLoading(false)
   }, [])
 
@@ -185,7 +185,7 @@ export function LoanRepaymentsPage() {
                         <TableCell className="text-right font-mono hidden md:table-cell">{loan.bank_account_id ? formatCurrency(balance) : '-'}</TableCell>
                         <TableCell className="hidden md:table-cell text-sm">{loan.next_withdrawal_date ? formatDate(loan.next_withdrawal_date) : '-'}</TableCell>
                         <TableCell><StatusBadge status={loan.status} statusMap={LOAN_REPAYMENT_STATUSES} /></TableCell>
-                        <TableCell>{isAtRisk && <AlertTriangle className="h-4 w-4 text-red-500" title="残高不足リスク" />}</TableCell>
+                        <TableCell>{isAtRisk && <span title="残高不足リスク"><AlertTriangle className="h-4 w-4 text-red-500" /></span>}</TableCell>
                         {editable && (
                           <TableCell>
                             <div className="flex items-center gap-1">

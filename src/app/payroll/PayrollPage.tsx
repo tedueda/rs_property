@@ -78,7 +78,7 @@ export function PayrollPage() {
       supabase.from('companies').select('id, name').is('deleted_at', null).order('name'),
       supabase.from('employees').select('id, company_id, employee_name, status').is('deleted_at', null).order('employee_name'),
     ])
-    setRecords(pr || []); setCompanies(co || []); setEmployees(emp || [])
+    setRecords(pr || []); setCompanies(co as Company[] || []); setEmployees(emp as Employee[] || [])
     setLoading(false)
   }, [])
 

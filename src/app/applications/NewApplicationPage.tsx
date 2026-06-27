@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { Select } from '@/components/ui/select'
+
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { GENDER_OPTIONS, HOUSING_TYPES, EMPLOYMENT_TYPES } from '@/lib/constants'
 import { Save, ChevronRight, ChevronLeft, FileCheck, Plus, Trash2 } from 'lucide-react'
@@ -63,7 +63,7 @@ export function NewApplicationPage() {
         <TabsContent value="property">
           <Card><CardHeader><CardTitle>物件情報</CardTitle></CardHeader><CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {fieldRow('物件名', true, <Select><option value="">選択してください</option><option>サンハイツA棟</option><option>グリーンコート</option><option>パークビュー横浜</option></Select>)}
+              {fieldRow('物件名', true, <select className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"><option value="">選択してください</option><option>サンハイツA棟</option><option>グリーンコート</option><option>パークビュー横浜</option></select>)}
               {fieldRow('号室', true, <Input placeholder="例: 301" />)}
               {fieldRow('契約開始予定日', true, <Input type="date" />)}
               {fieldRow('入居希望日', false, <Input type="date" />)}
@@ -75,7 +75,7 @@ export function NewApplicationPage() {
               {fieldRow('礼金', false, <Input type="number" placeholder="0" />)}
               {fieldRow('保証金', false, <Input type="number" placeholder="0" />)}
               {fieldRow('解約引', false, <Input type="number" placeholder="0" />)}
-              {fieldRow('使用目的', false, <Select><option value="">選択</option><option>居住用</option><option>事務所</option><option>店舗</option></Select>)}
+              {fieldRow('使用目的', false, <select className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"><option value="">選択</option><option>居住用</option><option>事務所</option><option>店舗</option></select>)}
             </div>
             <div className="mt-4">{fieldRow('備考', false, <Textarea />)}</div>
           </CardContent></Card>
@@ -88,10 +88,10 @@ export function NewApplicationPage() {
               {fieldRow('フリガナ', true, <Input placeholder="例: タナカタロウ" />)}
               {fieldRow('生年月日', true, <Input type="date" />)}
               {fieldRow('年齢', false, <Input type="number" />)}
-              {fieldRow('性別', false, <Select><option value="">選択</option>{GENDER_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}</Select>)}
+              {fieldRow('性別', false, <select className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"><option value="">選択</option>{GENDER_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}</select>)}
               {fieldRow('電話番号', true, <Input placeholder="例: 090-1234-5678" />)}
               {fieldRow('メール', false, <Input type="email" placeholder="例: tanaka@example.com" />)}
-              {fieldRow('現住居区分', false, <Select><option value="">選択</option>{HOUSING_TYPES.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}</Select>)}
+              {fieldRow('現住居区分', false, <select className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"><option value="">選択</option>{HOUSING_TYPES.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}</select>)}
               {fieldRow('居住年数', false, <Input type="number" placeholder="年" />)}
             </div>
             <div className="mt-4">{fieldRow('現住所', true, <Input placeholder="例: 東京都中野区中野1-1-1" />)}</div>
@@ -149,7 +149,7 @@ export function NewApplicationPage() {
               {fieldRow('所属部署', false, <Input />)}
               {fieldRow('役職', false, <Input />)}
               {fieldRow('勤続年数', false, <Input type="number" placeholder="年" />)}
-              {fieldRow('雇用形態', false, <Select><option value="">選択</option>{EMPLOYMENT_TYPES.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}</Select>)}
+              {fieldRow('雇用形態', false, <select className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"><option value="">選択</option>{EMPLOYMENT_TYPES.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}</select>)}
               {fieldRow('年収', false, <Input type="number" placeholder="0" />)}
               {fieldRow('業種', false, <Input />)}
             </div>
@@ -195,13 +195,13 @@ export function NewApplicationPage() {
               {fieldRow('申込受付日', true, <Input type="date" />)}
               {fieldRow('申込番号', false, <Input placeholder="自動採番" />)}
               {fieldRow('担当者名', false, <Input />)}
-              {fieldRow('申込ステータス', false, <Select><option value="draft">下書き</option><option value="submitted">申込済</option></Select>)}
-              {fieldRow('反社チェック', false, <Select><option value="">未確認</option><option value="ok">確認済</option><option value="ng">要確認</option></Select>)}
-              {fieldRow('本人確認書類', false, <Select><option value="">未確認</option><option value="ok">確認済</option></Select>)}
-              {fieldRow('在職確認', false, <Select><option value="">未確認</option><option value="ok">確認済</option></Select>)}
-              {fieldRow('緊急連絡先確認', false, <Select><option value="">未確認</option><option value="ok">確認済</option></Select>)}
-              {fieldRow('保証会社審査', false, <Select><option value="">未申請</option><option value="pending">審査中</option><option value="approved">承認</option><option value="rejected">却下</option></Select>)}
-              {fieldRow('オーナー承認', false, <Select><option value="">未申請</option><option value="pending">確認中</option><option value="approved">承認</option><option value="rejected">却下</option></Select>)}
+              {fieldRow('申込ステータス', false, <select className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"><option value="draft">下書き</option><option value="submitted">申込済</option></select>)}
+              {fieldRow('反社チェック', false, <select className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"><option value="">未確認</option><option value="ok">確認済</option><option value="ng">要確認</option></select>)}
+              {fieldRow('本人確認書類', false, <select className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"><option value="">未確認</option><option value="ok">確認済</option></select>)}
+              {fieldRow('在職確認', false, <select className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"><option value="">未確認</option><option value="ok">確認済</option></select>)}
+              {fieldRow('緊急連絡先確認', false, <select className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"><option value="">未確認</option><option value="ok">確認済</option></select>)}
+              {fieldRow('保証会社審査', false, <select className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"><option value="">未申請</option><option value="pending">審査中</option><option value="approved">承認</option><option value="rejected">却下</option></select>)}
+              {fieldRow('オーナー承認', false, <select className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"><option value="">未申請</option><option value="pending">確認中</option><option value="approved">承認</option><option value="rejected">却下</option></select>)}
               {fieldRow('鍵渡し予定日', false, <Input type="date" />)}
             </div>
             <div className="mt-4">{fieldRow('備考', false, <Textarea />)}</div>

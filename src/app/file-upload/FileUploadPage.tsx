@@ -356,7 +356,7 @@ export function FileUploadPage() {
                     <div key={i} className="flex items-center justify-between py-1 border-b last:border-0">
                       <div>
                         <span className="text-sm font-medium">{sheet.sheetName}</span>
-                        <span className="text-xs text-muted-foreground ml-2">({sheet.rowCount}\u884c, {sheet.columnCount}\u5217)</span>
+                        <span className="text-xs text-muted-foreground ml-2">({sheet.rowCount}行, {sheet.headers.length}列)</span>
                       </div>
                       <span className="text-xs px-2 py-1 bg-blue-50 text-blue-700 rounded">
                         {IMPORT_TARGET_LABELS[sheet.suggestedTarget as ImportTargetType] || sheet.suggestedTarget}

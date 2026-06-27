@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { supabase, isDemoMode } from './client'
 import type {
   Property, Unit, Application, Contract, Tenant, Repair,
-  RentCharge, RentPayment, OcrJob, DashboardStats, DashboardAlerts,
+  RentCharge, RentPayment, OcrJob, DashboardAlerts,
 } from '@/types'
 
 // Generic hook for Supabase queries
@@ -240,8 +240,19 @@ export function useDocuments() {
 }
 
 // ==================== Dashboard Stats ====================
+interface HookDashboardStats {
+  total_properties: number
+  total_units: number
+  occupied_units: number
+  vacant_units: number
+  pending_applications: number
+  contracts_this_month: number
+  arrears_count: number
+  active_repairs: number
+}
+
 export function useDashboardStats() {
-  const [stats, setStats] = useState<DashboardStats>({
+  const [stats, setStats] = useState<HookDashboardStats>({
     total_properties: 0, total_units: 0, occupied_units: 0, vacant_units: 0,
     pending_applications: 0, contracts_this_month: 0, arrears_count: 0, active_repairs: 0,
   })

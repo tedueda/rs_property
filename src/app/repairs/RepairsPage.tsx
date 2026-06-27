@@ -4,7 +4,7 @@ import { PageHeader } from '@/components/layout/PageHeader'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Select } from '@/components/ui/select'
+
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '@/components/ui/table'
 import { REPAIR_STATUSES, REPAIR_PRIORITIES } from '@/lib/constants'
 import { Search, Plus, Wrench, Eye, Loader2 } from 'lucide-react'
@@ -37,10 +37,10 @@ export function RepairsPage() {
             <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
             <Input placeholder="タイトル・物件名で検索..." className="pl-9" value={search} onChange={(e) => setSearch(e.target.value)} />
           </div>
-          <Select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="w-40">
+          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="w-40 h-10 rounded-md border border-input bg-background px-3 py-2 text-sm">
             <option value="">全ステータス</option>
             {Object.entries(REPAIR_STATUSES).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
-          </Select>
+          </select>
         </div>
       </CardContent></Card>
       <Card>
