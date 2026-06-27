@@ -104,7 +104,7 @@ const EXCEL_HEADER_MAP: Record<string, keyof PropertyLedgerData> = {
 const SECTION_HEADERS = ['契約者情報', '物件・入居情報', '費用・契約条件', '備考']
 
 function matchField(label: string): keyof PropertyLedgerData | null {
-  const cleaned = label.replace(/[\s\u3000]+/g, '').trim()
+  const cleaned = label.replace(/[\s　]+/g, '').trim()
   // Reject labels in the exclusion list
   if (FIELD_EXCLUDE.some(ex => cleaned === ex)) return null
   // Try exact match first
@@ -121,7 +121,7 @@ function matchField(label: string): keyof PropertyLedgerData | null {
 }
 
 function isSection(text: string): boolean {
-  const cleaned = text.replace(/[\s\u3000]+/g, '').trim()
+  const cleaned = text.replace(/[\s　]+/g, '').trim()
   // Only match exact section headers, not labels that contain them (e.g. "備考欄" should NOT match "備考")
   return SECTION_HEADERS.some(h => cleaned === h)
 }
@@ -142,7 +142,7 @@ function formatValue(field: keyof PropertyLedgerData, value: string): string {
 }
 
 function extractPropertyName(text: string): string {
-  const match = text.match(/\u7269\u4ef6\u7ba1\u7406\u53f0\u5e33[\s\u3000]*(.+)/u)
+  const match = text.match(/物件管理台帳[\s　]*(.+)/u)
   return match ? match[1].trim() : ''
 }
 
@@ -220,7 +220,7 @@ export async function parseDocx(file: File): Promise<PropertyLedgerData> {
   // Get all text content for header extraction
   const allText = doc.body.textContent || ''
   // Match property name after 物件管理台帳, stopping at section headers or field labels
-  const propNameMatch = allText.match(/\u7269\u4ef6\u7ba1\u7406\u53f0\u5e33[\s\u3000]*([^\n]{0,50}?)(?:\u5951\u7d04\u8005\u60c5\u5831|\u8cc3\u501f\u4eba|\u4f5c\u6210\u65e5|$)/u)
+  const propNameMatch = allText.match(/物件管理台帳[\s　]*([^\n]{0,50}?)(?:契約者情報|賃借人|作成日|$)/u)
   if (propNameMatch && propNameMatch[1].trim()) {
     data.property_name = propNameMatch[1].trim()
   }
@@ -278,7 +278,7 @@ function detectTabularHeaders(rows: string[][]): { headerRowIdx: number; colMap:
     const colMap: Record<number, keyof PropertyLedgerData> = {}
     let matchCount = 0
     for (let c = 0; c < row.length; c++) {
-      const cell = String(row[c] || '').replace(/[\s\u3000]+/g, '').trim()
+      const cell = String(row[c] || '').replace(/[\s　]+/g, '').trim()
       if (EXCEL_HEADER_MAP[cell]) {
         colMap[c] = EXCEL_HEADER_MAP[cell]
         matchCount++
@@ -300,7 +300,7 @@ function parseTabularSheet(rows: string[][], headerRowIdx: number, colMap: Recor
   let propNameCol = -1
   let roomCol = -1
   for (let c = 0; c < headerRow.length; c++) {
-    const cell = String(headerRow[c] || '').replace(/[\s\u3000]+/g, '').trim()
+    const cell = String(headerRow[c] || '').replace(/[\s　]+/g, '').trim()
     if (cell === '物件名') propNameCol = c
     if (cell === '部屋番号') roomCol = c
   }
