@@ -28,6 +28,7 @@ import { ImportReviewPage } from '@/app/import-review/ImportReviewPage'
 import { ImportHistoryPage } from '@/app/import-history/ImportHistoryPage'
 import { MonthlyIncomeExpensePage } from '@/app/monthly-income-expense/MonthlyIncomeExpensePage'
 import { UsersSettingsPage } from '@/app/settings/UsersSettingsPage'
+import { PropertyLedgerPage } from '@/app/property-ledger/PropertyLedgerPage'
 import { NotFoundPage } from '@/app/NotFoundPage'
 
 export default function App() {
@@ -42,6 +43,7 @@ export default function App() {
           <Route path="dashboard" element={<DashboardPage />} />
           <Route path="companies" element={<CompaniesPage />} />
           <Route path="properties-mgmt" element={<PropertiesMgmtPage />} />
+          <Route path="property-ledger" element={<PropertyLedgerPage />} />
           <Route path="rooms" element={<RoomsPage />} />
           <Route path="tenants-mgmt" element={<TenantsMgmtPage />} />
           <Route path="charges" element={<ChargesPage />} />
