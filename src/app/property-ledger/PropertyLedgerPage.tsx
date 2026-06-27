@@ -1,0 +1,364 @@
+import { useState, useEffect, useRef } from 'react'
+import { PageHeader } from '@/components/shared/PageHeader'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '@/components/ui/table'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
+import {
+  Upload, Plus, FileText, Pencil, Trash2, Eye, Loader2,
+  Download, Search,
+} from 'lucide-react'
+import {
+  parsePropertyLedgerFile,
+  emptyLedgerData,
+  type PropertyLedgerData,
+} from '@/lib/propertyLedgerParser'
+
+interface LedgerRecord extends PropertyLedgerData {
+  id: string
+}
+
+function generateId(): string {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 8)
+}
+
+export function PropertyLedgerPage() {
+  const [records, setRecords] = useState<LedgerRecord[]>([])
+  const [search, setSearch] = useState('')
+  const [showForm, setShowForm] = useState(false)
+  const [editId, setEditId] = useState<string | null>(null)
+  const [form, setForm] = useState<PropertyLedgerData>(emptyLedgerData())
+  const [importing, setImporting] = useState(false)
+  const [importError, setImportError] = useState<string | null>(null)
+  const [showDetail, setShowDetail] = useState<LedgerRecord | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => { document.title = '物件管理台帳 - RS不動産管理' }, [])
+
+  const filtered = records.filter(r =>
+    r.property_name.includes(search) ||
+    r.tenant_name.includes(search) ||
+    r.notes.includes(search)
+  )
+
+  const openCreate = () => {
+    setEditId(null)
+    setForm(emptyLedgerData())
+    setShowForm(true)
+  }
+
+  const openEdit = (record: LedgerRecord) => {
+    setEditId(record.id)
+    setForm({ ...record })
+    setShowForm(true)
+  }
+
+  const handleSave = () => {
+    if (editId) {
+      setRecords(prev => prev.map(r => r.id === editId ? { ...form, id: editId } : r))
+    } else {
+      setRecords(prev => [...prev, { ...form, id: generateId() }])
+    }
+    setShowForm(false)
+  }
+
+  const handleDelete = (id: string) => {
+    if (!confirm('この台帳を削除しますか？')) return
+    setRecords(prev => prev.filter(r => r.id !== id))
+  }
+
+  const handleFileImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files
+    if (!files || files.length === 0) return
+
+    setImporting(true)
+    setImportError(null)
+
+    try {
+      const newRecords: LedgerRecord[] = []
+      for (const file of files) {
+        const parsed = await parsePropertyLedgerFile(file)
+        for (const data of parsed) {
+          newRecords.push({ ...data, id: generateId() })
+        }
+      }
+      setRecords(prev => [...prev, ...newRecords])
+    } catch (err) {
+      setImportError(err instanceof Error ? err.message : 'インポートに失敗しました')
+    } finally {
+      setImporting(false)
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    }
+  }
+
+  const fieldRow = (label: string, field: keyof PropertyLedgerData, type = 'text') => (
+    <div className="space-y-1.5">
+      <Label className="text-sm">{label}</Label>
+      {type === 'textarea' ? (
+        <Textarea
+          value={form[field]}
+          onChange={(e) => setForm(prev => ({ ...prev, [field]: e.target.value }))}
+          rows={3}
+        />
+      ) : (
+        <Input
+          type={type}
+          value={form[field]}
+          onChange={(e) => setForm(prev => ({ ...prev, [field]: e.target.value }))}
+        />
+      )}
+    </div>
+  )
+
+  const detailRow = (label: string, value: string) => (
+    <div className="flex justify-between py-2 border-b last:border-0">
+      <span className="text-sm text-muted-foreground">{label}</span>
+      <span className="text-sm font-medium text-right max-w-[60%]">{value || '-'}</span>
+    </div>
+  )
+
+  return (
+    <div>
+      <PageHeader
+        title="物件管理台帳"
+        description={`${records.length}件の台帳`}
+      >
+        <Button variant="outline" onClick={() => fileInputRef.current?.click()}>
+          {importing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
+          ファイル読込
+        </Button>
+        <Button onClick={openCreate}>
+          <Plus className="mr-2 h-4 w-4" />新規作成
+        </Button>
+      </PageHeader>
+
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".docx,.html,.htm,.xlsx,.xls,.pdf"
+        multiple
+        className="hidden"
+        onChange={handleFileImport}
+      />
+
+      {importError && (
+        <Card className="mb-4 border-red-200 bg-red-50">
+          <CardContent className="p-4 text-sm text-red-700">
+            {importError}
+            <Button variant="ghost" size="sm" className="ml-2" onClick={() => setImportError(null)}>
+              閉じる
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      <Card className="mb-4">
+        <CardContent className="p-4">
+          <div className="flex gap-4 items-center">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="物件名・入居者名・備考で検索..."
+                className="pl-9"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </div>
+            <p className="text-xs text-muted-foreground whitespace-nowrap">
+              対応形式: DOCX, HTML, Excel, PDF
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
+      {records.length === 0 ? (
+        <Card>
+          <CardContent className="p-12 text-center">
+            <FileText className="h-10 w-10 mx-auto mb-3 text-muted-foreground" />
+            <p className="text-muted-foreground mb-2">物件管理台帳がまだありません</p>
+            <p className="text-xs text-muted-foreground mb-4">
+              「ファイル読込」で既存のDOCX・HTML・Excel・PDFファイルを取り込むか、「新規作成」で手入力できます
+            </p>
+            <div className="flex gap-2 justify-center">
+              <Button variant="outline" onClick={() => fileInputRef.current?.click()}>
+                <Upload className="mr-2 h-4 w-4" />ファイル読込
+              </Button>
+              <Button onClick={openCreate}>
+                <Plus className="mr-2 h-4 w-4" />新規作成
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      ) : (
+        <Card>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>物件名</TableHead>
+                <TableHead>賃借人</TableHead>
+                <TableHead>電話番号</TableHead>
+                <TableHead className="text-right">家賃</TableHead>
+                <TableHead>入居年月日</TableHead>
+                <TableHead>保証会社</TableHead>
+                <TableHead className="text-right">操作</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filtered.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                    該当するデータがありません
+                  </TableCell>
+                </TableRow>
+              ) : filtered.map(record => (
+                <TableRow key={record.id}>
+                  <TableCell className="font-medium">{record.property_name || '-'}</TableCell>
+                  <TableCell>{record.tenant_name || '-'}</TableCell>
+                  <TableCell className="text-muted-foreground">{record.phone || '-'}</TableCell>
+                  <TableCell className="text-right">{record.rent || '-'}</TableCell>
+                  <TableCell className="text-muted-foreground">{record.move_in_date || '-'}</TableCell>
+                  <TableCell className="text-muted-foreground">{record.guarantee_company || '-'}</TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex justify-end gap-1">
+                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setShowDetail(record)}>
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(record)}>
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => handleDelete(record.id)}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </Card>
+      )}
+
+      {/* Form Dialog */}
+      <Dialog open={showForm} onOpenChange={setShowForm}>
+        <DialogContent onClose={() => setShowForm(false)} className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{editId ? '台帳編集' : '新規台帳作成'}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-6 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              {fieldRow('物件名', 'property_name')}
+              {fieldRow('作成日', 'created_date')}
+            </div>
+
+            <div>
+              <h3 className="text-sm font-semibold text-muted-foreground mb-3 px-2 py-1 bg-blue-50 rounded">契約者情報</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {fieldRow('賃借人の名前', 'tenant_name')}
+                {fieldRow('電話番号', 'phone')}
+              </div>
+              <div className="mt-4">
+                {fieldRow('保証人', 'guarantor')}
+              </div>
+            </div>
+
+            <div>
+              <h3 className="text-sm font-semibold text-muted-foreground mb-3 px-2 py-1 bg-blue-50 rounded">物件・入居情報</h3>
+              {fieldRow('入居年月日', 'move_in_date')}
+            </div>
+
+            <div>
+              <h3 className="text-sm font-semibold text-muted-foreground mb-3 px-2 py-1 bg-blue-50 rounded">費用・契約条件</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {fieldRow('家賃', 'rent')}
+                {fieldRow('保証会社', 'guarantee_company')}
+                {fieldRow('ハウスクリーニング代', 'house_cleaning_fee')}
+                {fieldRow('水道代', 'water_fee')}
+                {fieldRow('共益費', 'common_fee')}
+                {fieldRow('保証金', 'deposit')}
+                {fieldRow('控除', 'deduction')}
+                {fieldRow('違約金', 'penalty')}
+              </div>
+            </div>
+
+            <div>
+              <h3 className="text-sm font-semibold text-muted-foreground mb-3 px-2 py-1 bg-blue-50 rounded">備考</h3>
+              {fieldRow('備考欄', 'notes', 'textarea')}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowForm(false)}>キャンセル</Button>
+            <Button onClick={handleSave}>
+              <Download className="mr-2 h-4 w-4" />保存
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Detail Dialog */}
+      <Dialog open={!!showDetail} onOpenChange={() => setShowDetail(null)}>
+        <DialogContent onClose={() => setShowDetail(null)} className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>物件管理台帳 {showDetail?.property_name}</DialogTitle>
+          </DialogHeader>
+          {showDetail && (
+            <div className="space-y-4 py-2">
+              <Card>
+                <CardHeader className="py-3">
+                  <CardTitle className="text-sm bg-blue-50 px-2 py-1 rounded">契約者情報</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-0 pt-0">
+                  {detailRow('賃借人の名前', showDetail.tenant_name)}
+                  {detailRow('電話番号', showDetail.phone)}
+                  {detailRow('保証人', showDetail.guarantor)}
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="py-3">
+                  <CardTitle className="text-sm bg-blue-50 px-2 py-1 rounded">物件・入居情報</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-0 pt-0">
+                  {detailRow('入居年月日', showDetail.move_in_date)}
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="py-3">
+                  <CardTitle className="text-sm bg-blue-50 px-2 py-1 rounded">費用・契約条件</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-0 pt-0">
+                  {detailRow('家賃', showDetail.rent)}
+                  {detailRow('保証会社', showDetail.guarantee_company)}
+                  {detailRow('ハウスクリーニング代', showDetail.house_cleaning_fee)}
+                  {detailRow('水道代', showDetail.water_fee)}
+                  {detailRow('共益費', showDetail.common_fee)}
+                  {detailRow('保証金', showDetail.deposit)}
+                  {detailRow('控除', showDetail.deduction)}
+                  {detailRow('違約金', showDetail.penalty)}
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="py-3">
+                  <CardTitle className="text-sm bg-blue-50 px-2 py-1 rounded">備考</CardTitle>
+                </CardHeader>
+                <CardContent className="pt-0">
+                  <p className="text-sm whitespace-pre-wrap">{showDetail.notes || '-'}</p>
+                </CardContent>
+              </Card>
+              {showDetail.created_date && (
+                <p className="text-xs text-muted-foreground text-right">作成日: {showDetail.created_date}</p>
+              )}
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { openEdit(showDetail!); setShowDetail(null) }}>
+              <Pencil className="mr-2 h-4 w-4" />編集
+            </Button>
+            <Button variant="outline" onClick={() => setShowDetail(null)}>閉じる</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  )
+}

@@ -5,7 +5,7 @@ import {
   LayoutDashboard, Building2, Home, DoorOpen, Users, Banknote,
   CreditCard, AlertTriangle, Settings, Menu, X,
   UserCog, FolderOpen, Receipt, Wallet, Landmark, ArrowLeftRight, CalendarClock, Send,
-  FileText, Upload, ClipboardCheck, History, Bell, TrendingUp
+  FileText, Upload, ClipboardCheck, History, Bell, TrendingUp, BookOpen
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
@@ -25,6 +25,7 @@ const navSections: NavSection[] = [
     items: [
       { path: '/companies', label: '会社管理', icon: Building2 },
       { path: '/properties-mgmt', label: '物件管理', icon: Home },
+      { path: '/property-ledger', label: '物件管理台帳', icon: BookOpen },
       { path: '/rooms', label: '部屋管理', icon: DoorOpen },
       { path: '/tenants-mgmt', label: '入居者管理', icon: Users },
       { path: '/employees', label: '従業員管理', icon: UserCog },
