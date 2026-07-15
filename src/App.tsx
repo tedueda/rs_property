@@ -23,9 +23,6 @@ import { DocumentCategoriesPage } from '@/app/document-categories/DocumentCatego
 import { DocumentsPage } from '@/app/documents/DocumentsPage'
 import { DocumentDetailPage } from '@/app/documents/DocumentDetailPage'
 import { DocumentAlertsPage } from '@/app/document-alerts/DocumentAlertsPage'
-import { FileUploadPage } from '@/app/file-upload/FileUploadPage'
-import { ImportReviewPage } from '@/app/import-review/ImportReviewPage'
-import { ImportHistoryPage } from '@/app/import-history/ImportHistoryPage'
 import { MonthlyIncomeExpensePage } from '@/app/monthly-income-expense/MonthlyIncomeExpensePage'
 import { UsersSettingsPage } from '@/app/settings/UsersSettingsPage'
 import { PropertyLedgerPage } from '@/app/property-ledger/PropertyLedgerPage'
@@ -61,9 +58,9 @@ export default function App() {
           <Route path="documents" element={<DocumentsPage />} />
           <Route path="documents/:id" element={<DocumentDetailPage />} />
           <Route path="document-alerts" element={<DocumentAlertsPage />} />
-          <Route path="file-upload" element={<FileUploadPage />} />
-          <Route path="import-review" element={<ImportReviewPage />} />
-          <Route path="import-history" element={<ImportHistoryPage />} />
+          <Route path="file-upload" element={<Navigate to="/property-ledger" replace />} />
+          <Route path="import-review" element={<Navigate to="/property-ledger" replace />} />
+          <Route path="import-history" element={<Navigate to="/property-ledger" replace />} />
           <Route path="monthly-income-expense" element={<MonthlyIncomeExpensePage />} />
           <Route path="settings/users" element={<UsersSettingsPage />} />
         </Route>

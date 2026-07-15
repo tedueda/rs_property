@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { supabase, isDemoMode } from '@/lib/supabase/client'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -10,7 +11,7 @@ import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import {
   Upload, Plus, FileText, Pencil, Trash2, Eye, Loader2,
-  Download, Search,
+  Database, Search, CheckCircle2,
 } from 'lucide-react'
 import {
   parsePropertyLedgerFile,
@@ -27,13 +28,18 @@ function generateId(): string {
 }
 
 export function PropertyLedgerPage() {
+  const location = useLocation()
+  const navigate = useNavigate()
   const [records, setRecords] = useState<LedgerRecord[]>([])
   const [search, setSearch] = useState('')
   const [showForm, setShowForm] = useState(false)
   const [editId, setEditId] = useState<string | null>(null)
   const [form, setForm] = useState<PropertyLedgerData>(emptyLedgerData())
   const [importing, setImporting] = useState(false)
+  const [saving, setSaving] = useState(false)
   const [importError, setImportError] = useState<string | null>(null)
+  const [successMessage, setSuccessMessage] = useState<string | null>(null)
+  const [importedFileName, setImportedFileName] = useState<string | null>(null)
   const [showDetail, setShowDetail] = useState<LedgerRecord | null>(null)
   const [loading, setLoading] = useState(true)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -49,7 +55,9 @@ export function PropertyLedgerPage() {
       .select('*')
       .is('deleted_at', null)
       .order('created_at', { ascending: false })
-    if (!error && data) {
+    if (error) {
+      setImportError(`台帳データの取得に失敗しました: ${error.message}`)
+    } else if (data) {
       setRecords(data as LedgerRecord[])
     }
     setLoading(false)
@@ -66,12 +74,16 @@ export function PropertyLedgerPage() {
 
   const openCreate = () => {
     setEditId(null)
+    setImportedFileName(null)
+    setImportError(null)
     setForm(emptyLedgerData())
     setShowForm(true)
   }
 
   const openEdit = (record: LedgerRecord) => {
     setEditId(record.id)
+    setImportedFileName(null)
+    setImportError(null)
     setForm({
       property_name: record.property_name,
       created_date: record.created_date,
@@ -93,22 +105,42 @@ export function PropertyLedgerPage() {
   }
 
   const handleSave = async () => {
+    if (!form.tenant_name.trim()) {
+      setImportError('賃借人の名前を入力してください')
+      return
+    }
+
+    setSaving(true)
+    setImportError(null)
+
     if (isDemoMode) {
       if (editId) {
         setRecords(prev => prev.map(r => r.id === editId ? { ...form, id: editId } : r))
       } else {
-        setRecords(prev => [...prev, { ...form, id: generateId() }])
+        setRecords(prev => [{ ...form, id: generateId() }, ...prev])
       }
+      setSuccessMessage(editId ? '台帳を更新しました' : '台帳を登録しました')
       setShowForm(false)
+      setImportedFileName(null)
+      setSaving(false)
       return
     }
-    if (editId) {
-      await supabase.from('property_ledgers').update({ ...form }).eq('id', editId)
-    } else {
-      await supabase.from('property_ledgers').insert({ ...form })
+
+    const { error } = editId
+      ? await supabase.from('property_ledgers').update({ ...form }).eq('id', editId)
+      : await supabase.from('property_ledgers').insert({ ...form })
+
+    if (error) {
+      setImportError(`データベースへの登録に失敗しました: ${error.message}`)
+      setSaving(false)
+      return
     }
+
+    setSuccessMessage(editId ? '台帳を更新しました' : '台帳をデータベースに登録しました')
     setShowForm(false)
-    fetchRecords()
+    setImportedFileName(null)
+    await fetchRecords()
+    setSaving(false)
   }
 
   const handleDelete = async (id: string) => {
@@ -121,35 +153,60 @@ export function PropertyLedgerPage() {
     fetchRecords()
   }
 
-  const handleFileImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files
-    if (!files || files.length === 0) return
+  const importFiles = useCallback(async (files: File[]) => {
+    if (files.length === 0) return
 
     setImporting(true)
     setImportError(null)
+    setSuccessMessage(null)
 
     try {
-      const newRecords: LedgerRecord[] = []
+      const parsedRecords: PropertyLedgerData[] = []
       for (const file of files) {
-        const parsed = await parsePropertyLedgerFile(file)
-        for (const data of parsed) {
-          newRecords.push({ ...data, id: generateId() })
-        }
+        parsedRecords.push(...await parsePropertyLedgerFile(file))
       }
-      if (!isDemoMode && newRecords.length > 0) {
-        const rows = newRecords.map(({ id: _id, ...rest }) => rest)
-        await supabase.from('property_ledgers').insert(rows)
-        await fetchRecords()
+
+      if (parsedRecords.length === 0) {
+        throw new Error('台帳データを読み取れませんでした。ファイルの内容を確認してください。')
+      }
+
+      if (parsedRecords.length === 1) {
+        setEditId(null)
+        setImportedFileName(files[0].name)
+        setForm(parsedRecords[0])
+        setShowForm(true)
+        return
+      }
+
+      if (isDemoMode) {
+        const newRecords = parsedRecords.map(data => ({ ...data, id: generateId() }))
+        setRecords(prev => [...newRecords, ...prev])
       } else {
-        setRecords(prev => [...prev, ...newRecords])
+        const { error } = await supabase.from('property_ledgers').insert(parsedRecords)
+        if (error) throw new Error(`データベースへの登録に失敗しました: ${error.message}`)
+        await fetchRecords()
       }
+      setSuccessMessage(`${parsedRecords.length}件の台帳をデータベースに登録しました`)
     } catch (err) {
       setImportError(err instanceof Error ? err.message : 'インポートに失敗しました')
     } finally {
       setImporting(false)
       if (fileInputRef.current) fileInputRef.current.value = ''
     }
+  }, [fetchRecords])
+
+  const handleFileImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files
+    if (files) void importFiles(Array.from(files))
   }
+
+  useEffect(() => {
+    const state = location.state as { droppedFiles?: File[] } | null
+    if (state?.droppedFiles?.length) {
+      void importFiles(state.droppedFiles)
+      navigate(location.pathname, { replace: true, state: null })
+    }
+  }, [importFiles, location.pathname, location.state, navigate])
 
   const fieldRow = (label: string, field: keyof PropertyLedgerData, type = 'text') => (
     <div className="space-y-1.5">
@@ -181,11 +238,11 @@ export function PropertyLedgerPage() {
     <div>
       <PageHeader
         title="物件管理台帳"
-        description={`${records.length}件の台帳`}
+        description="台帳ファイルを読み込み、内容を確認してデータベースに登録します"
       >
-        <Button variant="outline" onClick={() => fileInputRef.current?.click()}>
+        <Button onClick={() => fileInputRef.current?.click()} disabled={importing}>
           {importing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
-          ファイル読込
+          台帳ファイルを読み込む
         </Button>
         <Button onClick={openCreate}>
           <Plus className="mr-2 h-4 w-4" />新規作成
@@ -201,7 +258,19 @@ export function PropertyLedgerPage() {
         onChange={handleFileImport}
       />
 
-      {importError && (
+      {successMessage && (
+        <Card className="mb-4 border-green-200 bg-green-50">
+          <CardContent className="flex items-center gap-2 p-4 text-sm text-green-800">
+            <CheckCircle2 className="h-4 w-4" />
+            {successMessage}
+            <Button variant="ghost" size="sm" className="ml-auto" onClick={() => setSuccessMessage(null)}>
+              閉じる
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      {importError && !showForm && (
         <Card className="mb-4 border-red-200 bg-red-50">
           <CardContent className="p-4 text-sm text-red-700">
             {importError}
@@ -211,6 +280,14 @@ export function PropertyLedgerPage() {
           </CardContent>
         </Card>
       )}
+
+      <Card className="mb-4 border-blue-200 bg-blue-50/50">
+        <CardContent className="grid gap-4 p-4 sm:grid-cols-3">
+          <div><p className="text-sm font-semibold">1. ファイルを選択</p><p className="text-xs text-muted-foreground">DOCX・HTML・Excel・PDFに対応</p></div>
+          <div><p className="text-sm font-semibold">2. 読取内容を確認</p><p className="text-xs text-muted-foreground">添付画像と同じ基本項目を確認・修正</p></div>
+          <div><p className="text-sm font-semibold">3. データベースに登録</p><p className="text-xs text-muted-foreground">登録後は一覧と詳細画面で閲覧</p></div>
+        </CardContent>
+      </Card>
 
       <Card className="mb-4">
         <CardContent className="p-4">
@@ -225,7 +302,7 @@ export function PropertyLedgerPage() {
               />
             </div>
             <p className="text-xs text-muted-foreground whitespace-nowrap">
-              対応形式: DOCX, HTML, Excel, PDF
+              登録済み: {records.length}件
             </p>
           </div>
         </CardContent>
@@ -243,11 +320,11 @@ export function PropertyLedgerPage() {
             <FileText className="h-10 w-10 mx-auto mb-3 text-muted-foreground" />
             <p className="text-muted-foreground mb-2">物件管理台帳がまだありません</p>
             <p className="text-xs text-muted-foreground mb-4">
-              「ファイル読込」で既存のDOCX・HTML・Excel・PDFファイルを取り込むか、「新規作成」で手入力できます
+              「台帳ファイルを読み込む」でDOCX・HTML・Excel・PDFを選択し、読取内容を確認して登録してください
             </p>
             <div className="flex gap-2 justify-center">
               <Button variant="outline" onClick={() => fileInputRef.current?.click()}>
-                <Upload className="mr-2 h-4 w-4" />ファイル読込
+                <Upload className="mr-2 h-4 w-4" />台帳ファイルを読み込む
               </Button>
               <Button onClick={openCreate}>
                 <Plus className="mr-2 h-4 w-4" />新規作成
@@ -260,8 +337,8 @@ export function PropertyLedgerPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>物件名</TableHead>
                 <TableHead>賃借人</TableHead>
+                <TableHead>物件名</TableHead>
                 <TableHead>電話番号</TableHead>
                 <TableHead className="text-right">家賃</TableHead>
                 <TableHead>入居年月日</TableHead>
@@ -278,8 +355,8 @@ export function PropertyLedgerPage() {
                 </TableRow>
               ) : filtered.map(record => (
                 <TableRow key={record.id}>
-                  <TableCell className="font-medium">{record.property_name || '-'}</TableCell>
-                  <TableCell>{record.tenant_name || '-'}</TableCell>
+                  <TableCell className="font-medium">{record.tenant_name || '-'}</TableCell>
+                  <TableCell>{record.property_name || '-'}</TableCell>
                   <TableCell className="text-muted-foreground">{record.phone || '-'}</TableCell>
                   <TableCell className="text-right">{record.rent || '-'}</TableCell>
                   <TableCell className="text-muted-foreground">{record.move_in_date || '-'}</TableCell>
@@ -305,14 +382,29 @@ export function PropertyLedgerPage() {
       )}
 
       {/* Form Dialog */}
-      <Dialog open={showForm} onOpenChange={setShowForm}>
+      <Dialog open={showForm} onOpenChange={(open) => {
+        setShowForm(open)
+        if (!open) {
+          setImportedFileName(null)
+          setImportError(null)
+        }
+      }}>
         <DialogContent onClose={() => setShowForm(false)} className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{editId ? '台帳編集' : '新規台帳作成'}</DialogTitle>
+            <DialogTitle>{importedFileName ? '読取内容の確認' : editId ? '台帳編集' : '新規台帳作成'}</DialogTitle>
           </DialogHeader>
           <div className="space-y-6 py-4">
+            {importedFileName && (
+              <div className="rounded-md border border-blue-200 bg-blue-50 p-3 text-sm text-blue-900">
+                <p className="font-medium">{importedFileName}</p>
+                <p className="mt-1 text-xs">読み取った内容を確認し、必要に応じて修正してから登録してください。</p>
+              </div>
+            )}
+            {importError && (
+              <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">{importError}</div>
+            )}
             <div className="grid grid-cols-2 gap-4">
-              {fieldRow('物件名', 'property_name')}
+              {fieldRow('物件名（任意）', 'property_name')}
               {fieldRow('作成日', 'created_date')}
             </div>
 
@@ -352,9 +444,10 @@ export function PropertyLedgerPage() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowForm(false)}>キャンセル</Button>
-            <Button onClick={handleSave}>
-              <Download className="mr-2 h-4 w-4" />保存
+            <Button variant="outline" onClick={() => setShowForm(false)} disabled={saving}>キャンセル</Button>
+            <Button onClick={handleSave} disabled={saving}>
+              {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Database className="mr-2 h-4 w-4" />}
+              {importedFileName ? 'データベースに登録' : editId ? '更新する' : '登録する'}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -364,7 +457,7 @@ export function PropertyLedgerPage() {
       <Dialog open={!!showDetail} onOpenChange={() => setShowDetail(null)}>
         <DialogContent onClose={() => setShowDetail(null)} className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>物件管理台帳 {showDetail?.property_name}</DialogTitle>
+            <DialogTitle>物件管理台帳 {showDetail?.property_name || showDetail?.tenant_name}</DialogTitle>
           </DialogHeader>
           {showDetail && (
             <div className="space-y-4 py-2">

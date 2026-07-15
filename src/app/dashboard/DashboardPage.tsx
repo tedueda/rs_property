@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase, isDemoMode } from '@/lib/supabase/client'
-import { formatCurrency, maskAccountNumber, ALLOWED_FILE_EXTENSIONS } from '@/lib/constants'
+import { formatCurrency, maskAccountNumber } from '@/lib/constants'
 import type { BankAccountBalance, RepaymentSchedule } from '@/types'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button'
 import {
   Loader2, Upload, Landmark, CalendarClock, TrendingDown, FileText,
   Building2, Home, DoorOpen, Users, Banknote, CreditCard, AlertTriangle,
-  Receipt, Wallet, Send, FolderOpen, History, ClipboardCheck, Bell, UserCog,
+  Receipt, Wallet, Send, FolderOpen, ClipboardCheck, Bell, UserCog,
   ArrowLeftRight, BarChart3, Clock
 } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
@@ -71,8 +71,7 @@ const PANEL_ITEMS: PanelItem[] = [
   { label: '資金移動', icon: Send, path: '/fund-transfers', description: '口座間の振替' },
   { label: '書類管理', icon: FileText, path: '/documents', description: '契約書・書類' },
   { label: '更新期限', icon: Bell, path: '/document-alerts', description: '期限アラート' },
-  { label: '取込確認', icon: ClipboardCheck, path: '/import-review', description: '取込データ確認' },
-  { label: '取込履歴', icon: History, path: '/import-history', description: '過去の取込記録' },
+  { label: '物件管理台帳', icon: FileText, path: '/property-ledger', description: '台帳の読込・閲覧' },
   { label: '月次収支', icon: BarChart3, path: '/monthly-income-expense', description: '月次P&L' },
   { label: '会社管理', icon: Building2, path: '/companies', description: 'マスタ管理' },
   { label: '物件管理', icon: Home, path: '/properties-mgmt', description: '物件情報' },
@@ -195,10 +194,10 @@ export function DashboardPage() {
   const handleDragLeave = () => setIsDragging(false)
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault(); setIsDragging(false)
-    if (e.dataTransfer.files.length > 0) navigate('/file-upload', { state: { droppedFiles: Array.from(e.dataTransfer.files) } })
+    if (e.dataTransfer.files.length > 0) navigate('/property-ledger', { state: { droppedFiles: Array.from(e.dataTransfer.files) } })
   }
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) navigate('/file-upload', { state: { droppedFiles: Array.from(e.target.files) } })
+    if (e.target.files && e.target.files.length > 0) navigate('/property-ledger', { state: { droppedFiles: Array.from(e.target.files) } })
   }
 
   const chartData = Object.values(
@@ -233,19 +232,14 @@ export function DashboardPage() {
           >
             <Upload className={`h-12 w-12 ${isDragging ? 'text-blue-500' : 'text-gray-400'}`} />
             <div className="text-center">
-              <p className="text-lg font-semibold">{isDragging ? 'ファイルをドロップしてください' : 'ファイル取込'}</p>
-              <p className="text-sm text-muted-foreground mt-1">{'ドラッグ&ドロップ または クリックしてファイルを選択'}</p>
-              <p className="text-xs text-muted-foreground mt-1">{'対応形式: JPG, PNG, HEIF, PDF, Excel, Word'}</p>
+              <p className="text-lg font-semibold">{isDragging ? '台帳ファイルをドロップしてください' : '物件管理台帳を読み込む'}</p>
+              <p className="text-sm text-muted-foreground mt-1">DOCX・HTML・Excel・PDFから台帳データを登録します</p>
+              <p className="text-xs text-muted-foreground mt-1">ファイルを選択後、内容を確認してデータベースに登録できます</p>
             </div>
-            <input ref={fileInputRef} type="file" className="hidden" accept={ALLOWED_FILE_EXTENSIONS} multiple onChange={handleFileSelect} />
-            <div className="flex gap-2 mt-2">
-              <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); navigate('/file-upload') }}>
-                <Upload className="h-4 w-4 mr-1" />{'ファイル取込画面へ'}
-              </Button>
-              <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); navigate('/import-history') }}>
-                <History className="h-4 w-4 mr-1" />{'取込履歴'}
-              </Button>
-            </div>
+            <input ref={fileInputRef} type="file" className="hidden" accept=".docx,.html,.htm,.xlsx,.xls,.pdf" multiple onChange={handleFileSelect} />
+            <Button variant="outline" size="sm" className="mt-2" onClick={(e) => { e.stopPropagation(); navigate('/property-ledger') }}>
+              <Upload className="h-4 w-4 mr-1" />物件管理台帳を開く
+            </Button>
           </div>
         </CardContent>
       </Card>
