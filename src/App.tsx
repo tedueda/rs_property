@@ -27,8 +27,11 @@ import { MonthlyIncomeExpensePage } from '@/app/monthly-income-expense/MonthlyIn
 import { UsersSettingsPage } from '@/app/settings/UsersSettingsPage'
 import { PropertyLedgerPage } from '@/app/property-ledger/PropertyLedgerPage'
 import { NotFoundPage } from '@/app/NotFoundPage'
+import { useAuthInitializer } from '@/hooks/useAuth'
 
 export default function App() {
+  useAuthInitializer()
+
   return (
     <BrowserRouter>
       <Routes>
