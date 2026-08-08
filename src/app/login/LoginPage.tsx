@@ -24,9 +24,12 @@ export function LoginPage() {
     e.preventDefault()
     setError('')
     setLoading(true)
-    const { error } = await signIn(loginId, password)
-    if (error) setError('ログインIDまたはパスワードが正しくありません')
-    setLoading(false)
+    try {
+      const { error } = await signIn(loginId, password)
+      if (error) setError('ログインに失敗しました。ID・パスワードまたは通信状態を確認してください')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
