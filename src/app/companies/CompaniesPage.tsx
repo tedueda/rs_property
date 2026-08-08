@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
-import { Pencil, Trash2, Loader2 } from 'lucide-react'
+import { Pencil, Trash2, Loader2, AlertCircle } from 'lucide-react'
 
 const DEMO_COMPANIES: Company[] = [
   { id: '1', name: '林建設株式会社', company_code: 'HAYASHI', address: '大阪府大阪市中央区1-1-1', phone: '06-1234-5678', notes: '不動産管理グループ', created_at: '', updated_at: '' },
@@ -44,21 +44,31 @@ export function CompaniesPage() {
   const [form, setForm] = useState<CompanyForm>(emptyForm)
   const [saving, setSaving] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
+  const [error, setError] = useState<string | null>(null)
 
   const fetchCompanies = useCallback(async () => {
     setLoading(true)
+    setError(null)
     if (isDemoMode) {
       setCompanies(DEMO_COMPANIES)
       setLoading(false)
       return
     }
-    const { data } = await supabase
-      .from('companies')
-      .select('*')
-      .is('deleted_at', null)
-      .order('created_at', { ascending: true })
-    setCompanies(data || [])
-    setLoading(false)
+    try {
+      const { data, error: fetchError } = await supabase
+        .from('companies')
+        .select('*')
+        .is('deleted_at', null)
+        .order('created_at', { ascending: true })
+      if (fetchError) {
+        setError(`会社データの取得に失敗しました: ${fetchError.message}`)
+        setCompanies([])
+        return
+      }
+      setCompanies(data || [])
+    } finally {
+      setLoading(false)
+    }
   }, [])
 
   useEffect(() => { fetchCompanies() }, [fetchCompanies])
@@ -94,12 +104,14 @@ export function CompaniesPage() {
       setSaving(false)
       return
     }
-    if (editingId) {
-      await supabase.from('companies').update(form).eq('id', editingId)
-    } else {
-      await supabase.from('companies').insert(form)
-    }
+    const { error: saveError } = editingId
+      ? await supabase.from('companies').update(form).eq('id', editingId)
+      : await supabase.from('companies').insert(form)
     setSaving(false)
+    if (saveError) {
+      setError(`会社データの保存に失敗しました: ${saveError.message}`)
+      return
+    }
     setDialogOpen(false)
     fetchCompanies()
   }
@@ -110,8 +122,12 @@ export function CompaniesPage() {
     if (isDemoMode) {
       setCompanies(prev => prev.filter(c => c.id !== deleteId))
     } else {
-      await supabase.from('companies').update({ deleted_at: new Date().toISOString() }).eq('id', deleteId)
-      fetchCompanies()
+      const { error: deleteError } = await supabase
+        .from('companies')
+        .update({ deleted_at: new Date().toISOString() })
+        .eq('id', deleteId)
+      if (deleteError) setError(`会社データの削除に失敗しました: ${deleteError.message}`)
+      else fetchCompanies()
     }
     setSaving(false)
     setDeleteDialogOpen(false)
@@ -138,6 +154,18 @@ export function CompaniesPage() {
         />
       </PageHeader>
 
+      {error && (
+        <Card className="border-red-200 bg-red-50">
+          <CardContent className="flex items-start gap-3 p-4">
+            <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-red-500" />
+            <div className="flex-1 space-y-2">
+              <p className="text-sm text-red-700">{error}</p>
+              <Button variant="outline" size="sm" onClick={fetchCompanies}>再試行</Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       <Card>
         <CardContent className="p-0">
           {loading ? (
@@ -157,7 +185,7 @@ export function CompaniesPage() {
                 </TableHeader>
                 <TableBody>
                   {filtered.length === 0 ? (
-                    <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">データがありません</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">{error ? '読み込みに失敗しました' : 'データがありません'}</TableCell></TableRow>
                   ) : filtered.map((company) => (
                     <TableRow key={company.id}>
                       <TableCell className="font-mono text-sm">{company.company_code}</TableCell>
