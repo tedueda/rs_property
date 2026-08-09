@@ -68,21 +68,97 @@ export class DemoOcrProvider implements OcrProvider {
 }
 
 /**
- * Placeholder for real OCR providers (Google Vision, AWS Textract, etc.)
- * Implement this interface to add a new OCR engine.
- *
- * Example:
- * export class GoogleVisionOcrProvider implements OcrProvider {
- *   name = 'google_vision'
- *   supportedMimeTypes = ['image/jpeg', 'image/png', 'application/pdf']
- *   async processFile(file: File): Promise<OcrResult> {
- *     // Call Google Vision API
- *   }
- * }
+ * Google Cloud Vision OCR Provider
+ * Uses DOCUMENT_TEXT_DETECTION for high-quality Japanese text extraction.
  */
+export class GoogleVisionOcrProvider implements OcrProvider {
+  name = 'google_vision'
+  supportedMimeTypes = ['image/jpeg', 'image/png', 'image/heif', 'image/heic', 'application/pdf']
 
-// Factory
-let currentProvider: OcrProvider = new DemoOcrProvider()
+  private apiKey: string
+  private apiUrl: string
+
+  constructor(apiKey: string) {
+    this.apiKey = apiKey
+    this.apiUrl = `https://vision.googleapis.com/v1/images:annotate?key=${apiKey}`
+  }
+
+  async processFile(file: File): Promise<OcrResult> {
+    const base64Content = await this.fileToBase64(file)
+
+    const requestBody = {
+      requests: [
+        {
+          image: { content: base64Content },
+          features: [
+            { type: 'DOCUMENT_TEXT_DETECTION', maxResults: 1 },
+          ],
+        },
+      ],
+    }
+
+    const response = await fetch(this.apiUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(requestBody),
+    })
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}))
+      const message = errorData?.error?.message || `Vision API error: ${response.status}`
+      return { raw_text: '', confidence: 0, error: message }
+    }
+
+    const data = await response.json()
+    const annotation = data.responses?.[0]
+
+    if (annotation?.error) {
+      return { raw_text: '', confidence: 0, error: annotation.error.message || 'OCR processing failed' }
+    }
+
+    const fullText = annotation?.fullTextAnnotation?.text || ''
+    if (!fullText) {
+      return { raw_text: '', confidence: 0, language: 'ja', pages: 1 }
+    }
+
+    // Calculate average confidence from page-level confidence if available
+    const pages = annotation?.fullTextAnnotation?.pages || []
+    let avgConfidence = 0.85
+    if (pages.length > 0) {
+      const confidences = pages
+        .flatMap((p: { blocks?: Array<{ confidence?: number }> }) => p.blocks || [])
+        .map((b: { confidence?: number }) => b.confidence ?? 0.85)
+      if (confidences.length > 0) {
+        avgConfidence = confidences.reduce((a: number, b: number) => a + b, 0) / confidences.length
+      }
+    }
+
+    return {
+      raw_text: fullText,
+      confidence: avgConfidence,
+      language: 'ja',
+      pages: pages.length || 1,
+    }
+  }
+
+  private fileToBase64(file: File): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = () => {
+        const result = reader.result as string
+        resolve(result.split(',')[1])
+      }
+      reader.onerror = reject
+      reader.readAsDataURL(file)
+    })
+  }
+}
+
+// Factory — auto-select provider based on environment
+const visionApiKey = import.meta.env.VITE_GOOGLE_CLOUD_VISION_API_KEY || ''
+let currentProvider: OcrProvider = visionApiKey
+  ? new GoogleVisionOcrProvider(visionApiKey)
+  : new DemoOcrProvider()
 
 export function setOcrProvider(provider: OcrProvider): void {
   currentProvider = provider

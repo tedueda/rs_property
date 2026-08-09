@@ -19,12 +19,12 @@ export function getUserRoleKeys(user: User | null): RoleKey[] {
 
 export function canEdit(user: User | null): boolean {
   const roles = getUserRoleKeys(user)
-  return roles.includes('accounting_manager')
+  return roles.includes('president') || roles.includes('accounting_manager')
 }
 
 export function canEditPayments(user: User | null): boolean {
   const roles = getUserRoleKeys(user)
-  return roles.includes('accounting_manager') || roles.includes('payment_staff')
+  return roles.includes('president') || roles.includes('accounting_manager') || roles.includes('payment_staff')
 }
 
 export function canViewAll(user: User | null): boolean {
@@ -39,15 +39,15 @@ export function canViewAll(user: User | null): boolean {
 
 export function canEditExpenses(user: User | null): boolean {
   const roles = getUserRoleKeys(user)
-  return roles.includes('accounting_manager') || roles.includes('expense_staff')
+  return roles.includes('president') || roles.includes('accounting_manager') || roles.includes('expense_staff')
 }
 
 export function canEditDocuments(user: User | null): boolean {
   const roles = getUserRoleKeys(user)
-  return roles.includes('accounting_manager') || roles.includes('payment_staff') || roles.includes('expense_staff')
+  return roles.includes('president') || roles.includes('accounting_manager') || roles.includes('payment_staff') || roles.includes('expense_staff')
 }
 
 export function isReadOnly(user: User | null): boolean {
   const roles = getUserRoleKeys(user)
-  return roles.every((r) => r === 'viewer' || r === 'president')
+  return roles.every((r) => r === 'viewer')
 }
